@@ -218,13 +218,23 @@ class _TakeExamScreenState extends State<TakeExamScreen> {
     };
 
     try {
+      // Логируем перед отправкой
+      debugPrint('Submitting exam with body: $body');
+
       await _examsService.submitExam(body);
-      // Если всё ок:
+
+      // Логируем успешный результат
+      debugPrint('Exam submitted successfully.');
+
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Экзамен отправлен!")),
       );
       Navigator.pop(context, true);
-    } catch (e) {
+    } catch (e, stackTrace) {
+      // Логируем ошибку
+      debugPrint('Error while submitting exam: $e');
+      debugPrint('Stack trace: $stackTrace');
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Ошибка отправки: $e")),
       );

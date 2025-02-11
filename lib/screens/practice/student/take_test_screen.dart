@@ -42,11 +42,11 @@ class _TakeTestScreenState extends State<TakeTestScreen> {
         userAnswers.entries.map((entry) {
       final questionId = entry.key;
       final userAnswer = entry.value;
-      // userAnswer может быть List<String>, или String
-      // допустим, у вас schemas.StudentTestSubmit(answers=List[AnswerItem]) c poljami question_id i answer
+      final answerToSubmit =
+          (userAnswer is Set) ? userAnswer.toList() : userAnswer;
       return {
         "question_id": questionId,
-        "answer": userAnswer,
+        "answer": answerToSubmit,
       };
     }).toList();
 

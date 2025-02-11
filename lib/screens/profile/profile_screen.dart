@@ -79,12 +79,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   child: const Text('История тестирования'),
                 ),
                 const SizedBox(height: 8.0),
-                ElevatedButton(
-                  onPressed: () {
-                    Navigator.pushNamed(context, '/performance');
-                  },
-                  child: const Text('Успеваемость'),
-                ),
+                // ElevatedButton(
+                //   onPressed: () {
+                //     Navigator.pushNamed(context, '/performance');
+                //   },
+                //   child: const Text('Успеваемость'),
+                // ),
               ],
             ),
           );
