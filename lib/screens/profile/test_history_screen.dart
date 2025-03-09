@@ -1,11 +1,12 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:school_test_app/screens/students/student_list_screen.dart';
 import 'package:school_test_app/utils/interceptor.dart';
 import 'package:school_test_app/widgets/app_navigator.dart';
 
 /// Экран "История тестирования/результатов".
 /// Если [studentId] == null -> ученик смотрит свои результаты (/student/my-results).
-/// Если [studentId] != null -> учитель смотрит результаты конкретного ученика (/teacher/student/{id}/results).
+/// Если [studentId] != null -> учитель смотрит результаты выбранного ученика (/teacher/student/{id}/results).
 class TestHistoryScreen extends StatefulWidget {
   final int? studentId;
 
@@ -19,14 +20,31 @@ class _TestHistoryScreenState extends State<TestHistoryScreen> {
   bool _isLoading = false;
   String? _error;
 
-  /// Список результатов, каждый элемент - Map<String, dynamic>,
-  ///   содержащий: { test_id, exam_id, subject, grade, score, final_grade, created_at, ... }
+  /// Список результатов, каждый элемент – Map<String, dynamic>:
+  /// test_id, exam_id, subject, grade, score, final_grade, created_at, и т.д.
   List<Map<String, dynamic>> _allResults = [];
 
   @override
   void initState() {
     super.initState();
-    _fetchTestHistory();
+    // Если текущий пользователь учитель и studentId не указан, перенаправляем на экран выбора ученика
+    if (widget.studentId == null && _isTeacherUser()) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const StudentsListScreen()),
+        );
+      });
+    } else {
+      _fetchTestHistory();
+    }
+  }
+
+  bool _isTeacherUser() {
+    // Здесь необходимо определить, что текущий пользователь является учителем.
+    // Если у вас хранится роль в каком-либо глобальном состоянии, используйте её.
+    // Для примера возвращаем true, чтобы показать логику.
+    return true;
   }
 
   Future<void> _fetchTestHistory() async {
@@ -36,8 +54,9 @@ class _TestHistoryScreenState extends State<TestHistoryScreen> {
     });
 
     try {
-      // Определяем, какой endpoint вызывать
-      final endpoint = (widget.studentId == null)
+      // Если studentId не указан (для ученика) – вызывается '/student/my-results',
+      // а если указан (учитель) – '/teacher/student/{studentId}/results'
+      final endpoint = widget.studentId == null
           ? '/student/my-results'
           : '/teacher/student/${widget.studentId}/results';
 
@@ -65,12 +84,11 @@ class _TestHistoryScreenState extends State<TestHistoryScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Если studentId != null => учитель
+    // Если передан studentId, значит экран открывает учитель
     final isTeacher = widget.studentId != null;
 
     return Scaffold(
-      appBar:
-          appHeader(isTeacher ? 'Результаты ученика' : 'История тестирования'),
+      appBar: appHeader(isTeacher ? 'Результаты ученика' : 'История тестирования'),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : (_error != null)
@@ -80,7 +98,7 @@ class _TestHistoryScreenState extends State<TestHistoryScreen> {
   }
 
   Widget _buildContent() {
-    // Разделяем результаты на testResults (test_id != null) и examResults (exam_id != null)
+    // Разбиваем результаты на две группы: тесты и экзамены
     final testResults = _allResults.where((r) => r['test_id'] != null).toList();
     final examResults = _allResults.where((r) => r['exam_id'] != null).toList();
 
@@ -118,9 +136,7 @@ class _TestHistoryScreenState extends State<TestHistoryScreen> {
 
     return ListTile(
       title: Text('Предмет: $subject'),
-      subtitle: Text(
-        'Класс: $grade\nОценка: $finalGrade\nПроцент: $score%',
-      ),
+      subtitle: Text('Класс: $grade\nОценка: $finalGrade'),
       trailing: Text(
         createdAt.split('T').join(' '),
         style: const TextStyle(fontSize: 12),

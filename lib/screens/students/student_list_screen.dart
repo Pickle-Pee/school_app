@@ -52,7 +52,8 @@ class _StudentsListScreenState extends State<StudentsListScreen> {
                 subtitle: Text(
                     '${student.firstName ?? ''} ${student.lastName ?? ''}'),
                 onTap: () {
-                  // При нажатии переходим к экрану истории тестирования ученика:
+                  // При нажатии переходим к экрану истории тестирования выбранного ученика,
+                  // передавая student.id в качестве параметра studentId
                   Navigator.push(
                     context,
                     MaterialPageRoute(
