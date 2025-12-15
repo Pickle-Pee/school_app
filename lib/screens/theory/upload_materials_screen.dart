@@ -2,6 +2,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:school_test_app/services/materials_service.dart';
 import 'package:school_test_app/config.dart';
+import 'package:school_test_app/theme/app_theme.dart';
 
 class UploadMaterialScreen extends StatefulWidget {
   const UploadMaterialScreen({Key? key}) : super(key: key);
@@ -70,31 +71,107 @@ class _UploadMaterialScreenState extends State<UploadMaterialScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text("Загрузить материал (PDF)"),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            TextField(
-              controller: _titleController,
-              decoration:
-                  const InputDecoration(labelText: "Название материала"),
-            ),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: _pickFile,
-              child: const Text("Выбрать PDF"),
-            ),
-            if (_selectedFilePath != null)
-              Text("Выбран файл: $_selectedFilePath"),
-            const Spacer(),
-            ElevatedButton(
-              onPressed: _upload,
-              child: const Text("Загрузить"),
-            ),
-          ],
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: AppTheme.primaryGradient,
+        ),
+        child: SafeArea(
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 10),
+                child: Row(
+                  children: const [
+                    CircleAvatar(
+                      radius: 24,
+                      backgroundColor: Colors.white24,
+                      child:
+                          Icon(Icons.upload_file_rounded, color: Colors.white),
+                    ),
+                    SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'Новый материал',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 22,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: Container(
+                  decoration: const BoxDecoration(
+                    color: AppTheme.background,
+                    borderRadius: BorderRadius.only(
+                      topLeft: Radius.circular(24),
+                      topRight: Radius.circular(24),
+                    ),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Card(
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16)),
+                          child: Padding(
+                            padding: const EdgeInsets.all(16.0),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'Основное',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
+                                const SizedBox(height: 12),
+                                TextField(
+                                  controller: _titleController,
+                                  decoration: const InputDecoration(
+                                    labelText: "Название материала",
+                                    prefixIcon: Icon(Icons.title_rounded),
+                                  ),
+                                ),
+                                const SizedBox(height: 12),
+                                Text(
+                                  _selectedFilePath != null
+                                      ? 'Выбран файл: $_selectedFilePath'
+                                      : 'Прикрепите PDF-файл для урока.',
+                                  style: const TextStyle(color: Colors.black54),
+                                ),
+                                const SizedBox(height: 12),
+                                OutlinedButton.icon(
+                                  onPressed: _pickFile,
+                                  icon: const Icon(Icons.attach_file),
+                                  label: const Text('Выбрать PDF'),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const Spacer(),
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton.icon(
+                            onPressed: _upload,
+                            icon: const Icon(Icons.cloud_upload_outlined),
+                            label: const Text("Загрузить"),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
