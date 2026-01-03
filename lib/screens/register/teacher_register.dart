@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 
 import 'package:school_test_app/config.dart';
+import 'package:school_test_app/theme/app_theme.dart';
 
 class TeacherRegistrationScreen extends StatelessWidget {
   final _emailController = TextEditingController();
@@ -39,29 +40,80 @@ class TeacherRegistrationScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Регистрация учителя')),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
+      backgroundColor: AppTheme.background,
+      appBar: AppBar(title: const Text('Регистрация учителя')),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(20.0),
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            TextField(
-              controller: _emailController,
-              decoration: InputDecoration(labelText: "Email"),
+            Container(
+              width: double.infinity,
+              decoration: BoxDecoration(
+                gradient: AppTheme.primaryGradient,
+                borderRadius: BorderRadius.circular(18),
+              ),
+              padding: const EdgeInsets.all(18),
+              child: Row(
+                children: const [
+                  Icon(Icons.cast_for_education,
+                      color: Colors.white, size: 28),
+                  SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      'Подключите класс к цифровым материалам и экзаменам',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
-            TextField(
-              controller: _passwordController,
-              decoration: InputDecoration(labelText: "Пароль"),
-              obscureText: true,
-            ),
-            TextField(
-              controller: _authCodeController,
-              decoration: InputDecoration(labelText: "Код авторизации"),
-            ),
-            SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: () => registerTeacher(context),
-              child: Text("Зарегистрироваться"),
+            const SizedBox(height: 18),
+            Card(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(18),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(18.0),
+                child: Column(
+                  children: [
+                    TextField(
+                      controller: _emailController,
+                      decoration: const InputDecoration(
+                        labelText: "Email",
+                        prefixIcon: Icon(Icons.email_outlined),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: _passwordController,
+                      decoration: const InputDecoration(
+                        labelText: "Пароль",
+                        prefixIcon: Icon(Icons.lock_outline_rounded),
+                      ),
+                      obscureText: true,
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: _authCodeController,
+                      decoration: const InputDecoration(
+                        labelText: "Код авторизации",
+                        prefixIcon: Icon(Icons.verified_user_outlined),
+                      ),
+                    ),
+                    const SizedBox(height: 18),
+                    ElevatedButton.icon(
+                      onPressed: () => registerTeacher(context),
+                      icon: const Icon(Icons.badge_outlined),
+                      label: const Text("Зарегистрироваться"),
+                    ),
+                  ],
+                ),
+              ),
             ),
           ],
         ),

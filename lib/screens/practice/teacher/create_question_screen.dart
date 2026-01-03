@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:school_test_app/config.dart';
 import 'package:school_test_app/models/question_model.dart';
 import 'package:school_test_app/services/test_service.dart';
+import 'package:school_test_app/theme/app_theme.dart';
 
 class CreateQuestionScreen extends StatefulWidget {
   final int testId;
@@ -85,37 +86,110 @@ class _CreateQuestionScreenState extends State<CreateQuestionScreen> {
     final isEdit = widget.question != null;
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(isEdit ? 'Редактирование вопроса' : 'Создание вопроса'),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Form(
-          key: _formKey,
-          child: ListView(
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: AppTheme.primaryGradient,
+        ),
+        child: SafeArea(
+          child: Column(
             children: [
-              _buildQuestionTypeField(),
-              const SizedBox(height: 16),
-              _buildQuestionTextField(),
-              const SizedBox(height: 16),
-
-              // Если тип вопроса — не text_input, показываем поля для вариантов и правильных ответов
-              if (_questionType != 'text_input') ...[
-                const Text('Варианты ответов (через запятую):'),
-                _buildOptionsField(),
-                const SizedBox(height: 16),
-                const Text('Правильные ответы (через запятую):'),
-                _buildCorrectAnswersField(),
-              ] else ...[
-                // Если text_input — поле для ожидаемого ответа (необязательно)
-                const Text('Ожидаемый ответ (необязательно):'),
-                _buildTextAnswerField(),
-              ],
-
-              const SizedBox(height: 32),
-              ElevatedButton(
-                onPressed: _onSave,
-                child: const Text('Сохранить'),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 10),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.18),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Icon(
+                        isEdit ? Icons.edit_outlined : Icons.add,
+                        color: Colors.white,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            isEdit ? 'Редактирование вопроса' : 'Создание вопроса',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 22,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          const Text(
+                            'Добавьте текст вопроса и варианты ответов, чтобы подготовить ученикам практику.',
+                            style: TextStyle(color: Colors.white70),
+                          ),
+                        ],
+                      ),
+                    )
+                  ],
+                ),
+              ),
+              Expanded(
+                child: Container(
+                  decoration: const BoxDecoration(
+                    color: AppTheme.background,
+                    borderRadius: BorderRadius.only(
+                      topLeft: Radius.circular(24),
+                      topRight: Radius.circular(24),
+                    ),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Form(
+                      key: _formKey,
+                      child: ListView(
+                        children: [
+                          _FormSection(
+                            title: 'Тип вопроса',
+                            children: [
+                              _buildQuestionTypeField(),
+                              const SizedBox(height: 12),
+                              const Text(
+                                'Выберите формат: текстовый ответ, одиночный или множественный выбор.',
+                                style: TextStyle(color: Colors.black54),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+                          _FormSection(
+                            title: 'Содержание',
+                            children: [
+                              _buildQuestionTextField(),
+                              const SizedBox(height: 12),
+                              if (_questionType != 'text_input') ...[
+                                const Text('Варианты ответов (через запятую):'),
+                                _buildOptionsField(),
+                                const SizedBox(height: 12),
+                                const Text('Правильные ответы (через запятую):'),
+                                _buildCorrectAnswersField(),
+                              ] else ...[
+                                const Text('Ожидаемый ответ (необязательно):'),
+                                _buildTextAnswerField(),
+                              ],
+                            ],
+                          ),
+                          const SizedBox(height: 24),
+                          SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton.icon(
+                              onPressed: _onSave,
+                              icon: const Icon(Icons.save_outlined),
+                              label: const Text('Сохранить вопрос'),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
               ),
             ],
           ),
@@ -140,7 +214,10 @@ class _CreateQuestionScreenState extends State<CreateQuestionScreen> {
           _questionType = value ?? 'text_input';
         });
       },
-      decoration: const InputDecoration(labelText: 'Тип вопроса'),
+      decoration: const InputDecoration(
+        labelText: 'Тип вопроса',
+        prefixIcon: Icon(Icons.tune_rounded),
+      ),
     );
   }
 
@@ -148,7 +225,10 @@ class _CreateQuestionScreenState extends State<CreateQuestionScreen> {
   Widget _buildQuestionTextField() {
     return TextFormField(
       initialValue: _questionText,
-      decoration: const InputDecoration(labelText: 'Текст вопроса'),
+      decoration: const InputDecoration(
+        labelText: 'Текст вопроса',
+        prefixIcon: Icon(Icons.text_snippet_outlined),
+      ),
       validator: (value) =>
           (value == null || value.isEmpty) ? 'Введите текст вопроса' : null,
       onSaved: (value) => _questionText = value ?? '',
@@ -190,6 +270,38 @@ class _CreateQuestionScreenState extends State<CreateQuestionScreen> {
       onSaved: (value) {
         _textAnswer = value;
       },
+    );
+  }
+}
+
+class _FormSection extends StatelessWidget {
+  final String title;
+  final List<Widget> children;
+
+  const _FormSection({required this.title, required this.children});
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w800,
+                color: Colors.black87,
+              ),
+            ),
+            const SizedBox(height: 12),
+            ...children,
+          ],
+        ),
+      ),
     );
   }
 }

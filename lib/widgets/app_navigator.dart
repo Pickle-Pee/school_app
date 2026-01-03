@@ -15,6 +15,7 @@ import 'package:school_test_app/screens/register/teacher_register.dart';
 import 'package:school_test_app/screens/strart_screen.dart';
 import 'package:school_test_app/screens/students/student_list_screen.dart';
 import 'package:school_test_app/screens/theory/materials_list_screen.dart';
+import 'package:school_test_app/theme/app_theme.dart';
 
 class AppNavigator extends StatelessWidget {
   final String initialRoute;
@@ -24,6 +25,8 @@ class AppNavigator extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      title: 'Школьник · Информатика',
+      theme: AppTheme.lightTheme,
       initialRoute: initialRoute,
       routes: {
         '/': (context) => StartScreen(),
@@ -50,6 +53,13 @@ class AppNavigator extends StatelessWidget {
 PreferredSizeWidget appHeader(String title, {List<Widget>? actions}) {
   return AppBar(
     title: Text(title),
+    centerTitle: false,
+    elevation: 0,
     actions: actions,
+    flexibleSpace: Container(
+      decoration: const BoxDecoration(
+        gradient: AppTheme.primaryGradient,
+      ),
+    ),
   );
 }
