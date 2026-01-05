@@ -36,7 +36,7 @@ class StartScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 16),
                     Text(
-                      'Школьник',
+                      'Цифровой класс',
                       style: theme.textTheme.headlineMedium,
                     ),
                     const SizedBox(height: 8),
