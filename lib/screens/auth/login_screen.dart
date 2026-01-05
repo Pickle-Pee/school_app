@@ -10,7 +10,7 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _authCodeController = TextEditingController();
 
@@ -19,16 +19,16 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _login(BuildContext context) async {
     try {
       final success = await AuthService.login(
-        email: _emailController.text.trim(),
+        phone: _phoneController.text.trim(),
         password: _passwordController.text.trim(),
-        authCode: _isTeacher ? _authCodeController.text.trim() : null,
+        teacherCode: _isTeacher ? _authCodeController.text.trim() : null,
       );
 
       if (success) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text("Авторизация успешна")),
         );
-        Navigator.pushNamed(context, '/home');
+        Navigator.pushNamed(context, '/shell');
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text("Неверные учетные данные")),
@@ -140,12 +140,12 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                       const SizedBox(height: 12),
                       TextField(
-                        controller: _emailController,
+                        controller: _phoneController,
                         decoration: const InputDecoration(
-                          labelText: "Email",
-                          prefixIcon: Icon(Icons.email_outlined),
+                          labelText: "Телефон",
+                          prefixIcon: Icon(Icons.phone_outlined),
                         ),
-                        keyboardType: TextInputType.emailAddress,
+                        keyboardType: TextInputType.phone,
                       ),
                       const SizedBox(height: 12),
                       TextField(
@@ -161,10 +161,10 @@ class _LoginScreenState extends State<LoginScreen> {
                         TextField(
                           controller: _authCodeController,
                           decoration: const InputDecoration(
-                            labelText: "Код авторизации",
-                            prefixIcon: Icon(Icons.badge_outlined),
-                          ),
+                          labelText: "Код учителя",
+                          prefixIcon: Icon(Icons.badge_outlined),
                         ),
+                      ),
                       ],
                       const SizedBox(height: 16),
                       ElevatedButton.icon(

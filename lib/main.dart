@@ -13,13 +13,9 @@ void main() async {
 
 Future<String> getInitialRoute() async {
   final accessToken = await SessionManager.getAccessToken();
-  final refreshToken = await SessionManager.getRefreshToken();
 
-  if (accessToken != null && refreshToken != null) {
-    final refreshed = await AuthService.refreshTokens();
-    if (refreshed) {
-      return '/shell';
-    }
+  if (accessToken != null && accessToken.isNotEmpty) {
+    return '/shell';
   }
 
   return '/';

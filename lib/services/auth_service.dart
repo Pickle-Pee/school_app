@@ -5,19 +5,19 @@ import 'package:school_test_app/config.dart';
 
 class AuthService {
   /// Логин
-  /// [email], [password], опционально [authCode] — если это учитель
+  /// [phone], [password], опционально [teacherCode] — если это учитель
   static Future<bool> login({
-    required String email,
+    required String phone,
     required String password,
-    String? authCode,
+    String? teacherCode,
   }) async {
-    final url = "${Config.baseUrl}/login";
+    final url = "${Config.baseUrl}/auth/login";
     final body = {
-      "email": email,
+      "phone": phone,
       "password": password,
     };
-    if (authCode != null && authCode.isNotEmpty) {
-      body["auth_code"] = authCode;
+    if (teacherCode != null && teacherCode.isNotEmpty) {
+      body["teacher_code"] = teacherCode;
     }
 
     final response = await http.post(
@@ -29,8 +29,7 @@ class AuthService {
     if (response.statusCode == 200) {
       final data = json.decode(response.body);
       final accessToken = data["access_token"];
-      final refreshToken = data["refresh_token"];
-      // Сохраняем токены
+      final refreshToken = data["refresh_token"] ?? '';
       await SessionManager.saveTokens(accessToken, refreshToken);
       return true;
     } else {
@@ -101,7 +100,7 @@ class AuthService {
     final refreshToken = await SessionManager.getRefreshToken();
     if (refreshToken == null) return false;
 
-    final url = "${Config.baseUrl}/refresh";
+    final url = "${Config.baseUrl}/auth/refresh";
     try {
       final response = await http.post(
         Uri.parse(url),
