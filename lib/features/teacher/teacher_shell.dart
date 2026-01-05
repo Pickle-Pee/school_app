@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:school_test_app/features/common/widgets/section_placeholder.dart';
 import 'package:school_test_app/features/teacher/classes/teacher_classes_screen.dart';
+import 'package:school_test_app/features/teacher/profile/teacher_profile_screen.dart';
 import 'package:school_test_app/theme/app_theme.dart';
 import 'package:school_test_app/widgets/app_navigator.dart';
 
@@ -29,10 +30,7 @@ class _TeacherShellState extends State<TeacherShell> {
       body: IndexedStack(
         index: _currentIndex,
         children: const [
-          SectionPlaceholder(
-            title: 'Профиль учителя',
-            description: 'Раздел профиля будет перенесён в teacher-поток.',
-          ),
+          TeacherProfileScreen(),
           TeacherClassesScreen(),
           SectionPlaceholder(
             title: 'Теория',

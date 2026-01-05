@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:school_test_app/features/common/widgets/section_placeholder.dart';
+import 'package:school_test_app/features/student/profile/student_profile_screen.dart';
 import 'package:school_test_app/features/student/subject/student_subject_placeholder.dart';
 import 'package:school_test_app/theme/app_theme.dart';
 import 'package:school_test_app/widgets/app_navigator.dart';
@@ -27,10 +27,7 @@ class _StudentShellState extends State<StudentShell> {
       body: IndexedStack(
         index: _currentIndex,
         children: const [
-          SectionPlaceholder(
-            title: 'Профиль ученика',
-            description: 'Здесь будет профиль и успеваемость ученика.',
-          ),
+          StudentProfileScreen(),
           StudentSubjectPlaceholder(),
         ],
       ),
