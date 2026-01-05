@@ -50,7 +50,7 @@ class _AboutScreenState extends State<AboutScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text(
-                    'Школьник — информатика',
+                    'Цифровой класс',
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 22,
