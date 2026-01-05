@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:school_test_app/features/common/widgets/section_placeholder.dart';
+import 'package:school_test_app/features/student/subject/student_subject_placeholder.dart';
 import 'package:school_test_app/theme/app_theme.dart';
 import 'package:school_test_app/widgets/app_navigator.dart';
 
@@ -25,14 +27,11 @@ class _StudentShellState extends State<StudentShell> {
       body: IndexedStack(
         index: _currentIndex,
         children: const [
-          _PlaceholderPage(
+          SectionPlaceholder(
             title: 'Профиль ученика',
             description: 'Здесь будет профиль и успеваемость ученика.',
           ),
-          _PlaceholderPage(
-            title: 'Предмет',
-            description: 'Вкладка предмета с теорией и практикой в разработке.',
-          ),
+          StudentSubjectPlaceholder(),
         ],
       ),
       bottomNavigationBar: BottomNavigationBar(
@@ -46,37 +45,6 @@ class _StudentShellState extends State<StudentShell> {
           BottomNavigationBarItem(
             icon: Icon(Icons.menu_book_outlined),
             label: 'Предмет',
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _PlaceholderPage extends StatelessWidget {
-  const _PlaceholderPage({
-    required this.title,
-    required this.description,
-  });
-
-  final String title;
-  final String description;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: Theme.of(context).textTheme.headlineSmall,
-          ),
-          const SizedBox(height: 12),
-          Text(
-            description,
-            style: Theme.of(context).textTheme.bodyMedium,
           ),
         ],
       ),
