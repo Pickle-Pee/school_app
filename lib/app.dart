@@ -10,7 +10,7 @@ class App extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Школьник · Информатика',
+      title: 'Цифровой класс',
       theme: AppTheme.lightTheme,
       initialRoute: initialRoute,
       routes: appRoutes,
