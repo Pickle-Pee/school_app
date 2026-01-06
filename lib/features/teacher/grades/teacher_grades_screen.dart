@@ -22,7 +22,7 @@ class _TeacherGradesScreenState extends State<TeacherGradesScreen>
   late final TabController _tabController;
   final TeacherGradesService _service = TeacherGradesService();
   final TeacherTopicsService _topicsService = TeacherTopicsService();
-  final TextEditingController _subjectController = TextEditingController();
+  final TextEditingController _topicIdController = TextEditingController();
   String _assignmentType = 'practice';
   int _page = 1;
   int _pageSize = 20;
@@ -43,6 +43,7 @@ class _TeacherGradesScreenState extends State<TeacherGradesScreen>
   void dispose() {
     _tabController.dispose();
     _subjectController.dispose();
+    _topicIdController.dispose();
     super.dispose();
   }
 
@@ -100,6 +101,11 @@ class _TeacherGradesScreenState extends State<TeacherGradesScreen>
     if (topicId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Выберите тему для фильтрации.')),
+  void _loadByTopic() {
+    final topicId = int.tryParse(_topicIdController.text.trim());
+    if (topicId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Укажите корректный ID темы.')),
       );
       return;
     }
@@ -146,6 +152,10 @@ class _TeacherGradesScreenState extends State<TeacherGradesScreen>
             topicsLoading: _topicsLoading,
             selectedTopic: _selectedTopic,
             subjectController: _subjectController,
+            topicIdController: _topicIdController,
+            assignmentType: _assignmentType,
+            page: _page,
+            pageSize: _pageSize,
             onTypeChanged: (value) => setState(() => _assignmentType = value),
             onPageChanged: (value) => setState(() => _page = value),
             onPageSizeChanged: (value) => setState(() => _pageSize = value),
@@ -262,6 +272,10 @@ class _ByTopicTab extends StatelessWidget {
     required this.topicsLoading,
     required this.selectedTopic,
     required this.subjectController,
+    required this.topicIdController,
+    required this.assignmentType,
+    required this.page,
+    required this.pageSize,
     required this.onTypeChanged,
     required this.onPageChanged,
     required this.onPageSizeChanged,
@@ -280,6 +294,10 @@ class _ByTopicTab extends StatelessWidget {
   final bool topicsLoading;
   final Topic? selectedTopic;
   final TextEditingController subjectController;
+  final TextEditingController topicIdController;
+  final String assignmentType;
+  final int page;
+  final int pageSize;
   final ValueChanged<String> onTypeChanged;
   final ValueChanged<int> onPageChanged;
   final ValueChanged<int> onPageSizeChanged;
@@ -337,6 +355,12 @@ class _ByTopicTab extends StatelessWidget {
                   : const Icon(Icons.refresh),
               label: const Text('Загрузить темы'),
             ),
+            controller: topicIdController,
+            decoration: const InputDecoration(
+              labelText: 'ID темы',
+              prefixIcon: Icon(Icons.tag_outlined),
+            ),
+            keyboardType: TextInputType.number,
           ),
           const SizedBox(height: 12),
           DropdownButtonFormField<String>(

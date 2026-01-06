@@ -13,6 +13,7 @@ class AuthService {
     required String password,
     String? teacherCode,
   }) async {
+    final url = "${Config.baseUrl}/auth/login";
     final body = {
       "phone": phone,
       "password": password,
@@ -33,6 +34,17 @@ class AuthService {
         accessToken: accessToken,
         refreshToken: refreshToken,
       );
+    final response = await http.post(
+      Uri.parse(url),
+      headers: {"Content-Type": "application/json"},
+      body: json.encode(body),
+    );
+
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+      final accessToken = data["access_token"];
+      final refreshToken = data["refresh_token"] ?? '';
+      await SessionManager.saveTokens(accessToken, refreshToken);
       return true;
     } on DioException {
       return false;
@@ -63,6 +75,7 @@ class AuthService {
     final refreshToken = await _tokenStorage.getRefreshToken();
     if (refreshToken == null) return false;
 
+    final url = "${Config.baseUrl}/auth/refresh";
     try {
       final response = await _client.post(
         '/auth/refresh',

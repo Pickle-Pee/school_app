@@ -7,6 +7,7 @@ Flutter-приложение для учителей и учеников с ра
 
 - Flutter SDK (stable channel)
 - Dart SDK (идёт вместе с Flutter)
+Это Flutter-приложение «Цифровой класс».
 
 ## Конфигурация
 

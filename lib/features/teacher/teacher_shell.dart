@@ -3,6 +3,9 @@ import 'package:school_test_app/features/teacher/classes/teacher_classes_screen.
 import 'package:school_test_app/features/teacher/practice/teacher_practice_screen.dart';
 import 'package:school_test_app/features/teacher/profile/teacher_profile_screen.dart';
 import 'package:school_test_app/features/teacher/theory/teacher_theory_screen.dart';
+import 'package:school_test_app/features/common/widgets/section_placeholder.dart';
+import 'package:school_test_app/features/teacher/classes/teacher_classes_screen.dart';
+import 'package:school_test_app/features/teacher/profile/teacher_profile_screen.dart';
 import 'package:school_test_app/theme/app_theme.dart';
 import 'package:school_test_app/widgets/app_navigator.dart';
 
@@ -35,6 +38,14 @@ class _TeacherShellState extends State<TeacherShell> {
           TeacherClassesScreen(),
           TeacherTheoryScreen(),
           TeacherPracticeScreen(),
+          SectionPlaceholder(
+            title: 'Теория',
+            description: 'Здесь появится список теоретических материалов.',
+          ),
+          SectionPlaceholder(
+            title: 'Практика',
+            description: 'Раздел практики и заданий в разработке.',
+          ),
         ],
       ),
       bottomNavigationBar: BottomNavigationBar(
