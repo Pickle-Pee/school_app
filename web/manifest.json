@@ -1,6 +1,6 @@
 {
-    "name": "school_test_app",
-    "short_name": "school_test_app",
+    "name": "Цифровой класс",
+    "short_name": "Цифровой класс",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
