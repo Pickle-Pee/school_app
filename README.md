@@ -1,16 +1,39 @@
 # Цифровой класс
 
-A new Flutter project.
+Flutter-приложение для учителей и учеников с разделением по ролям и API
+контрактом v1.
 
-## Getting Started
+## Требования
 
+- Flutter SDK (stable channel)
+- Dart SDK (идёт вместе с Flutter)
 Это Flutter-приложение «Цифровой класс».
 
-A few resources to get you started if this is your first Flutter project:
+## Конфигурация
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+Создайте файл `.env` в корне проекта и укажите базовый URL API:
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+```bash
+BASE_URL=http://<адрес_бэкенда>:8000
+```
+
+Пример структуры находится в `.env.example`.
+
+## Запуск
+
+```bash
+flutter pub get
+flutter run
+```
+
+## Проверки
+
+```bash
+flutter analyze
+flutter test
+```
+
+## Основные роли
+
+- **Учитель**: профиль, параллели/оценки, теория, практика.
+- **Ученик**: профиль, предмет (теория/практика).

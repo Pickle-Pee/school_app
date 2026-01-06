@@ -89,7 +89,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                             SizedBox(height: 4),
                             Text(
-                              'Вход в уроки информатики и цифровую практику',
+                              'Вход в цифровой класс',
                               style: TextStyle(
                                 color: Colors.white70,
                                 fontSize: 14,
@@ -173,13 +173,6 @@ class _LoginScreenState extends State<LoginScreen> {
                         label: const Text("Войти"),
                       ),
                       const SizedBox(height: 8),
-                      TextButton(
-                        onPressed: () => Navigator.pushNamed(
-                          context,
-                          '/password_reset',
-                        ),
-                        child: const Text('Забыли пароль?'),
-                      ),
                     ],
                   ),
                 ),

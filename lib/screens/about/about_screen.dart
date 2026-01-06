@@ -67,8 +67,8 @@ class _AboutScreenState extends State<AboutScreen> {
                     spacing: 10,
                     runSpacing: 10,
                     children: const [
-                      _Badge(label: 'Тесты и экзамены'),
-                      _Badge(label: 'Материалы по информатике'),
+                      _Badge(label: 'Практика и оценки'),
+                      _Badge(label: 'Теория и материалы'),
                       _Badge(label: 'Ученики и учителя вместе'),
                     ],
                   ),
@@ -94,7 +94,7 @@ class _AboutScreenState extends State<AboutScreen> {
                     ),
                     SizedBox(height: 8),
                     Text(
-                      'Объединить материалы, практику и аналитику в одном месте. Учителя создают тесты и экзамены, ученики учатся в удобном цифровом формате.',
+                      'Объединить материалы, практику и аналитику в одном месте. Учителя создают задания, ученики учатся в удобном цифровом формате.',
                       style: TextStyle(fontSize: 15),
                     ),
                   ],

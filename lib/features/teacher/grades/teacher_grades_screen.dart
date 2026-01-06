@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:school_test_app/features/teacher/classes/models/class_group.dart';
 import 'package:school_test_app/features/teacher/services/teacher_grades_service.dart';
+import 'package:school_test_app/features/teacher/services/teacher_topics_service.dart';
+import 'package:school_test_app/features/common/models/topic.dart';
 import 'package:school_test_app/theme/app_theme.dart';
 
 class TeacherGradesScreen extends StatefulWidget {
@@ -19,13 +21,16 @@ class _TeacherGradesScreenState extends State<TeacherGradesScreen>
     with SingleTickerProviderStateMixin {
   late final TabController _tabController;
   final TeacherGradesService _service = TeacherGradesService();
-  final TextEditingController _subjectController = TextEditingController();
+  final TeacherTopicsService _topicsService = TeacherTopicsService();
   final TextEditingController _topicIdController = TextEditingController();
   String _assignmentType = 'practice';
   int _page = 1;
   int _pageSize = 20;
   Future<List<Map<String, dynamic>>>? _summaryFuture;
   Future<List<Map<String, dynamic>>>? _topicFuture;
+  List<Topic> _topics = [];
+  Topic? _selectedTopic;
+  bool _topicsLoading = false;
 
   @override
   void initState() {
@@ -53,6 +58,49 @@ class _TeacherGradesScreenState extends State<TeacherGradesScreen>
     });
   }
 
+  void _onSubjectChanged(String value) {
+    setState(() {
+      _topics = [];
+      _selectedTopic = null;
+      _topicFuture = null;
+    });
+  }
+
+  Future<void> _loadTopics() async {
+    final subject = _subjectController.text.trim();
+    if (subject.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Укажите предмет для загрузки тем.')),
+      );
+      return;
+    }
+    setState(() => _topicsLoading = true);
+    try {
+      final topics = await _topicsService.fetchTopics(
+        classId: widget.classGroup.id,
+        subject: subject,
+      );
+      setState(() {
+        _topics = topics;
+        _selectedTopic = topics.isNotEmpty ? topics.first : null;
+      });
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Не удалось загрузить темы: $e')),
+      );
+      return;
+    } finally {
+      if (mounted) {
+        setState(() => _topicsLoading = false);
+      }
+    }
+  }
+
+  void _loadByTopic() {
+    final topicId = _selectedTopic?.id;
+    if (topicId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Выберите тему для фильтрации.')),
   void _loadByTopic() {
     final topicId = int.tryParse(_topicIdController.text.trim());
     if (topicId == null) {
@@ -92,10 +140,18 @@ class _TeacherGradesScreenState extends State<TeacherGradesScreen>
           _SummaryTab(
             future: _summaryFuture,
             subjectController: _subjectController,
+            onSubjectChanged: _onSubjectChanged,
             onReload: _loadSummary,
           ),
           _ByTopicTab(
             future: _topicFuture,
+            assignmentType: _assignmentType,
+            page: _page,
+            pageSize: _pageSize,
+            topics: _topics,
+            topicsLoading: _topicsLoading,
+            selectedTopic: _selectedTopic,
+            subjectController: _subjectController,
             topicIdController: _topicIdController,
             assignmentType: _assignmentType,
             page: _page,
@@ -104,6 +160,9 @@ class _TeacherGradesScreenState extends State<TeacherGradesScreen>
             onPageChanged: (value) => setState(() => _page = value),
             onPageSizeChanged: (value) => setState(() => _pageSize = value),
             onLoad: _loadByTopic,
+            onLoadTopics: _loadTopics,
+            onTopicChanged: (topic) => setState(() => _selectedTopic = topic),
+            onSubjectChanged: _onSubjectChanged,
             onReset: ({required int studentId, required int assignmentId}) async {
               await _service.resetAttempts(
                 studentId: studentId,
@@ -125,11 +184,13 @@ class _SummaryTab extends StatelessWidget {
   const _SummaryTab({
     required this.future,
     required this.subjectController,
+    required this.onSubjectChanged,
     required this.onReload,
   });
 
   final Future<List<Map<String, dynamic>>>? future;
   final TextEditingController subjectController;
+  final ValueChanged<String> onSubjectChanged;
   final VoidCallback onReload;
 
   @override
@@ -144,6 +205,7 @@ class _SummaryTab extends StatelessWidget {
               labelText: 'Предмет (необязательно)',
               prefixIcon: Icon(Icons.menu_book_outlined),
             ),
+            onChanged: onSubjectChanged,
           ),
           const SizedBox(height: 12),
           ElevatedButton.icon(
@@ -203,6 +265,13 @@ class _SummaryTab extends StatelessWidget {
 class _ByTopicTab extends StatelessWidget {
   const _ByTopicTab({
     required this.future,
+    required this.assignmentType,
+    required this.page,
+    required this.pageSize,
+    required this.topics,
+    required this.topicsLoading,
+    required this.selectedTopic,
+    required this.subjectController,
     required this.topicIdController,
     required this.assignmentType,
     required this.page,
@@ -211,10 +280,20 @@ class _ByTopicTab extends StatelessWidget {
     required this.onPageChanged,
     required this.onPageSizeChanged,
     required this.onLoad,
+    required this.onLoadTopics,
+    required this.onTopicChanged,
+    required this.onSubjectChanged,
     required this.onReset,
   });
 
   final Future<List<Map<String, dynamic>>>? future;
+  final String assignmentType;
+  final int page;
+  final int pageSize;
+  final List<Topic> topics;
+  final bool topicsLoading;
+  final Topic? selectedTopic;
+  final TextEditingController subjectController;
   final TextEditingController topicIdController;
   final String assignmentType;
   final int page;
@@ -223,6 +302,9 @@ class _ByTopicTab extends StatelessWidget {
   final ValueChanged<int> onPageChanged;
   final ValueChanged<int> onPageSizeChanged;
   final VoidCallback onLoad;
+  final Future<void> Function() onLoadTopics;
+  final ValueChanged<Topic?> onTopicChanged;
+  final ValueChanged<String> onSubjectChanged;
   final Future<void> Function({
     required int studentId,
     required int assignmentId,
@@ -235,6 +317,44 @@ class _ByTopicTab extends StatelessWidget {
       child: Column(
         children: [
           TextField(
+            controller: subjectController,
+            decoration: const InputDecoration(
+              labelText: 'Предмет для тем',
+              prefixIcon: Icon(Icons.menu_book_outlined),
+            ),
+            onChanged: onSubjectChanged,
+          ),
+          const SizedBox(height: 12),
+          DropdownButtonFormField<Topic>(
+            value: selectedTopic,
+            decoration: const InputDecoration(
+              labelText: 'Тема',
+              prefixIcon: Icon(Icons.tag_outlined),
+            ),
+            items: topics
+                .map(
+                  (topic) => DropdownMenuItem(
+                    value: topic,
+                    child: Text(topic.title),
+                  ),
+                )
+                .toList(),
+            onChanged: onTopicChanged,
+          ),
+          const SizedBox(height: 12),
+          Align(
+            alignment: Alignment.centerRight,
+            child: OutlinedButton.icon(
+              onPressed: topicsLoading ? null : onLoadTopics,
+              icon: topicsLoading
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.refresh),
+              label: const Text('Загрузить темы'),
+            ),
             controller: topicIdController,
             decoration: const InputDecoration(
               labelText: 'ID темы',

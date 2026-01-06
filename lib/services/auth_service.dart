@@ -1,9 +1,11 @@
-import 'dart:convert';
-import 'package:http/http.dart' as http;
-import 'package:school_test_app/utils/session_manager.dart';
-import 'package:school_test_app/config.dart';
+import 'package:dio/dio.dart';
+import 'package:school_test_app/core/api/api_client.dart';
+import 'package:school_test_app/core/storage/token_storage.dart';
 
 class AuthService {
+  static final Dio _client = ApiClient().client;
+  static const TokenStorage _tokenStorage = TokenStorage();
+
   /// Логин
   /// [phone], [password], опционально [teacherCode] — если это учитель
   static Future<bool> login({
@@ -20,6 +22,18 @@ class AuthService {
       body["teacher_code"] = teacherCode;
     }
 
+    try {
+      final response = await _client.post('/auth/login', data: body);
+      final data = response.data as Map<String, dynamic>? ?? {};
+      final accessToken = data["access_token"]?.toString();
+      if (accessToken == null || accessToken.isEmpty) {
+        return false;
+      }
+      final refreshToken = data["refresh_token"]?.toString() ?? '';
+      await _tokenStorage.saveTokens(
+        accessToken: accessToken,
+        refreshToken: refreshToken,
+      );
     final response = await http.post(
       Uri.parse(url),
       headers: {"Content-Type": "application/json"},
@@ -32,92 +46,56 @@ class AuthService {
       final refreshToken = data["refresh_token"] ?? '';
       await SessionManager.saveTokens(accessToken, refreshToken);
       return true;
-    } else {
+    } on DioException {
       return false;
     }
-  }
-
-  /// Регистрация ученика
-  static Future<bool> registerStudent(String email, String password) async {
-    final url = "${Config.baseUrl}/register/student";
-    final body = {
-      "email": email,
-      "password": password,
-    };
-    final response = await http.post(
-      Uri.parse(url),
-      headers: {"Content-Type": "application/json"},
-      body: json.encode(body),
-    );
-
-    return response.statusCode == 200 || response.statusCode == 201;
-  }
-
-  /// Регистрация учителя (требуется auth_code)
-  static Future<bool> registerTeacher(
-    String email,
-    String password,
-    String authCode,
-  ) async {
-    final url = "${Config.baseUrl}/register/teacher";
-    final body = {
-      "email": email,
-      "password": password,
-      "auth_code": authCode,
-    };
-    final response = await http.post(
-      Uri.parse(url),
-      headers: {"Content-Type": "application/json"},
-      body: json.encode(body),
-    );
-
-    return response.statusCode == 200 || response.statusCode == 201;
   }
 
 // Пример: вызываем /me и возвращаем поле "role"
 // Если /me вернёт {"email": "...", "first_name": "...", "last_name": "...", "role": "teacher"}
   static Future<String?> getUserType() async {
-    final token = await SessionManager.getAccessToken();
+    final token = await _tokenStorage.getAccessToken();
     if (token == null) return null; // не авторизован
 
-    final url = "${Config.baseUrl}/me";
-    final response = await http.get(
-      Uri.parse(url),
-      headers: {"Authorization": "Bearer $token"},
-    );
-
-    if (response.statusCode == 200) {
-      final data = json.decode(response.body);
-      return data["role"] as String?; // "teacher" или "student"
-    } else {
+    try {
+      final response = await _client.get('/me');
+      if (response.statusCode == 200) {
+        final data = response.data as Map<String, dynamic>? ?? {};
+        return data["role"] as String?; // "teacher" или "student"
+      }
+      return null;
+    } on DioException {
       // не смогли получить /me — значит неизвестно
       return null;
     }
   }
 
-  /// Рефреш токенов
+  /// Рефреш токенов (опционально)
   static Future<bool> refreshTokens() async {
-    final refreshToken = await SessionManager.getRefreshToken();
+    final refreshToken = await _tokenStorage.getRefreshToken();
     if (refreshToken == null) return false;
 
     final url = "${Config.baseUrl}/auth/refresh";
     try {
-      final response = await http.post(
-        Uri.parse(url),
-        headers: {"Content-Type": "application/json"},
-        body: json.encode({"refresh_token": refreshToken}),
+      final response = await _client.post(
+        '/auth/refresh',
+        data: {"refresh_token": refreshToken},
       );
 
       if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        await SessionManager.saveTokens(
-          data["access_token"],
-          data["refresh_token"],
-        );
+        final data = response.data as Map<String, dynamic>? ?? {};
+        final accessToken = data["access_token"]?.toString();
+        final newRefreshToken = data["refresh_token"]?.toString();
+        if (accessToken != null && accessToken.isNotEmpty) {
+          await _tokenStorage.saveTokens(
+            accessToken: accessToken,
+            refreshToken: newRefreshToken ?? refreshToken,
+          );
+        }
         return true;
       } else {
         // Если рефреш не успешен, очищаем
-        await SessionManager.clearTokens();
+        await _tokenStorage.clearTokens();
         return false;
       }
     } catch (e) {
@@ -125,39 +103,13 @@ class AuthService {
     }
   }
 
-  /// Логаут (удаляет refresh-токен и локальные токены)
-  static Future<void> logout() async {
-    // 1) Попробуем удалить сессию на бэкенде
-    await _logoutOnBackend();
-
-    // 2) Локально чистим
-    await SessionManager.clearTokens();
-  }
-
-  /// Доп. метод: вызвать POST /logout, чтобы на бэкенде удалить refresh-сессию
-  static Future<void> _logoutOnBackend() async {
-    final refreshToken = await SessionManager.getRefreshToken();
-    if (refreshToken == null) {
-      // Нет refreshToken — нечего удалять
-      return;
-    }
-
-    final url = "${Config.baseUrl}/logout";
-    try {
-      final response = await http.post(
-        Uri.parse(url),
-        headers: {"Content-Type": "application/json"},
-        body: json.encode({"refresh_token": refreshToken}),
-      );
-      // Даже если вернётся ошибка, мы всё равно почистим локальные токены,
-      // поэтому тут не делаем строгую проверку response.statusCode.
-    } catch (e) {
-      // Игнорируем ошибку сети
-    }
-  }
-
   /// Получить текущий access_token из хранилища
   static Future<String?> getAccessToken() async {
-    return SessionManager.getAccessToken();
+    return _tokenStorage.getAccessToken();
+  }
+
+  /// Очистить локальную сессию
+  static Future<void> clearSession() async {
+    await _tokenStorage.clearTokens();
   }
 }

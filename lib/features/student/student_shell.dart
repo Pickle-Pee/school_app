@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:school_test_app/features/student/profile/student_profile_screen.dart';
+import 'package:school_test_app/features/student/subject/student_subject_screen.dart';
 import 'package:school_test_app/features/student/subject/student_subject_placeholder.dart';
 import 'package:school_test_app/theme/app_theme.dart';
 import 'package:school_test_app/widgets/app_navigator.dart';
@@ -28,6 +29,7 @@ class _StudentShellState extends State<StudentShell> {
         index: _currentIndex,
         children: const [
           StudentProfileScreen(),
+          StudentSubjectScreen(),
           StudentSubjectPlaceholder(),
         ],
       ),
