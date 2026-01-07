@@ -1,13 +1,28 @@
 // screens/profile_screen.dart
 
 import 'package:flutter/material.dart';
+import 'package:school_test_app/models/profile_models.dart';
+import 'package:school_test_app/services/profile_service.dart';
 import 'package:school_test_app/theme/app_theme.dart';
 import 'package:school_test_app/widgets/app_navigator.dart';
 
-class ProfileScreen extends StatelessWidget {
+class ProfileScreen extends StatefulWidget {
   const ProfileScreen({Key? key}) : super(key: key);
 
-  static const _ProfileData _profile = _ProfileData.placeholder();
+  @override
+  State<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen> {
+  late final ProfileService _profileService;
+  late Future<ProfileView> _futureProfile;
+
+  @override
+  void initState() {
+    super.initState();
+    _profileService = ProfileService();
+    _futureProfile = _profileService.getProfile();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -22,53 +37,43 @@ class ProfileScreen extends StatelessWidget {
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const _ApiNoticeCard(),
-            const SizedBox(height: 16),
-            _ProfileHeader(profile: _profile),
-            const SizedBox(height: 18),
-            _ProfileDetails(profile: _profile),
-            const SizedBox(height: 12),
-            const _ProfileActions(),
-          ],
-        ),
-      ),
-    );
-  }
-}
+      body: FutureBuilder<ProfileView>(
+        future: _futureProfile,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (snapshot.hasError) {
+            return _MessageCard(
+              text: 'Не удалось загрузить профиль: ${snapshot.error}',
+            );
+          }
+          final profile = snapshot.data;
+          if (profile == null) {
+            return const _MessageCard(text: 'Профиль не найден.');
+          }
 
-class _ApiNoticeCard extends StatelessWidget {
-  const _ApiNoticeCard();
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Row(
-          children: const [
-            Icon(Icons.info_outline_rounded, color: AppTheme.primaryColor),
-            SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                'Профиль будет доступен после подключения нового API. Пока можно '
-                'перейти к истории работ и успеваемости.',
-              ),
+          return SingleChildScrollView(
+            padding: const EdgeInsets.all(20.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _ProfileHeader(profile: profile),
+                const SizedBox(height: 18),
+                _ProfileDetails(profile: profile),
+                const SizedBox(height: 12),
+                const _ProfileActions(),
+              ],
             ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }
 }
 
 class _ProfileHeader extends StatelessWidget {
-  final _ProfileData profile;
+  final ProfileView profile;
 
   const _ProfileHeader({required this.profile});
 
@@ -97,32 +102,29 @@ class _ProfileHeader extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  profile.displayName,
+                  profile.fullName,
                   style: Theme.of(context)
                       .textTheme
                       .headlineSmall
                       ?.copyWith(color: Colors.white),
                 ),
-                if (!profile.isPlaceholder) ...[
-                  const SizedBox(height: 6),
-                  Text(
-                    profile.email,
-                    style: const TextStyle(color: Colors.white70),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
+                const SizedBox(height: 6),
+                Text(
+                  profile.phone,
+                  style: const TextStyle(color: Colors.white70),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ],
             ),
           ),
-          if (!profile.isPlaceholder)
-            Chip(
-              label: Text(
-                profile.role,
-                style: const TextStyle(color: Colors.white),
-              ),
-              backgroundColor: Colors.white.withOpacity(0.18),
+          Chip(
+            label: Text(
+              profile.isTeacher ? 'Преподаватель' : 'Ученик',
+              style: const TextStyle(color: Colors.white),
             ),
+            backgroundColor: Colors.white.withOpacity(0.18),
+          ),
         ],
       ),
     );
@@ -130,27 +132,25 @@ class _ProfileHeader extends StatelessWidget {
 }
 
 class _ProfileDetails extends StatelessWidget {
-  final _ProfileData profile;
+  final ProfileView profile;
 
   const _ProfileDetails({required this.profile});
 
   @override
   Widget build(BuildContext context) {
-    if (profile.isPlaceholder) {
-      return Card(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(18),
-        ),
-        child: const Padding(
-          padding: EdgeInsets.all(16.0),
-          child: Text(
-            'Данные профиля появятся после подключения нового API.',
-            textAlign: TextAlign.center,
-          ),
-        ),
-      );
+    final rows = <_ProfileRow>[
+      _ProfileRow(label: 'Телефон', value: profile.phone),
+    ];
+    if (profile.isTeacher) {
+      rows.addAll([
+        _ProfileRow(label: 'Предмет', value: profile.subject),
+        _ProfileRow(label: 'Email', value: profile.email),
+        _ProfileRow(label: 'Кабинет', value: profile.room),
+        _ProfileRow(label: 'Заметка', value: profile.note),
+      ]);
+    } else {
+      rows.add(_ProfileRow(label: 'Класс', value: profile.className));
     }
-
     return Card(
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(18),
@@ -159,12 +159,7 @@ class _ProfileDetails extends StatelessWidget {
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _ProfileRow(label: 'Email', value: profile.email),
-            _ProfileRow(label: 'Имя', value: profile.firstName),
-            _ProfileRow(label: 'Фамилия', value: profile.lastName),
-            _ProfileRow(label: 'Роль', value: profile.role),
-          ],
+          children: rows,
         ),
       ),
     );
@@ -204,7 +199,7 @@ class _ProfileActions extends StatelessWidget {
 
 class _ProfileRow extends StatelessWidget {
   final String label;
-  final String value;
+  final String? value;
 
   const _ProfileRow({required this.label, required this.value});
 
@@ -227,7 +222,7 @@ class _ProfileRow extends StatelessWidget {
           Expanded(
             flex: 3,
             child: Text(
-              value,
+              value == null || value!.isEmpty ? '—' : value!,
               style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                     color: Colors.black87,
                   ),
@@ -239,28 +234,24 @@ class _ProfileRow extends StatelessWidget {
   }
 }
 
-class _ProfileData {
-  final String displayName;
-  final String email;
-  final String role;
-  final String firstName;
-  final String lastName;
-  final bool isPlaceholder;
+class _MessageCard extends StatelessWidget {
+  final String text;
 
-  const _ProfileData({
-    required this.displayName,
-    required this.email,
-    required this.role,
-    required this.firstName,
-    required this.lastName,
-    required this.isPlaceholder,
-  });
+  const _MessageCard({required this.text});
 
-  const _ProfileData.placeholder()
-      : displayName = 'Пользователь',
-        email = 'Нет данных',
-        role = 'Не указана',
-        firstName = 'Не указано',
-        lastName = 'Не указано',
-        isPlaceholder = true;
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Card(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Text(text, textAlign: TextAlign.center),
+          ),
+        ),
+      ),
+    );
+  }
 }
