@@ -162,7 +162,7 @@ class _Header extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           const Text(
-            'Собраны конспекты, методички и файлы для уроков информатики.',
+            'Собраны конспекты, методички и файлы для уроков и занятий.',
             style: TextStyle(color: Colors.white70),
           )
         ],
@@ -202,7 +202,7 @@ class _MaterialCard extends StatelessWidget {
             ),
           ),
           subtitle: const Text(
-            'PDF · Информатика',
+            'PDF · Теория',
             style: TextStyle(color: Colors.black54),
           ),
           trailing: const Icon(Icons.chevron_right_rounded, color: Colors.black38),

@@ -162,7 +162,7 @@ class _TestsScreenState extends State<TestsScreen> {
           ? FloatingActionButton.extended(
               onPressed: _onCreateTest,
               icon: const Icon(Icons.add),
-              label: const Text('Создать тест'),
+              label: const Text('Создать работу'),
             )
           : null,
     );
@@ -191,7 +191,7 @@ class _Header extends StatelessWidget {
               SizedBox(width: 12),
               Expanded(
                 child: Text(
-                  'Практика и тесты',
+                  'Практика',
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 22,
@@ -205,7 +205,7 @@ class _Header extends StatelessWidget {
           Text(
             isTeacher
                 ? 'Создавайте задания, редактируйте вопросы и отслеживайте прогресс класса.'
-                : 'Решайте задачи и проходите тесты по информатике в удобном формате.',
+                : 'Решайте задачи и проходите практику в удобном формате.',
             style: const TextStyle(
               color: Colors.white70,
             ),
@@ -251,7 +251,7 @@ class _EmptyState extends StatelessWidget {
           const SizedBox(height: 16),
           Text(
             isTeacher
-                ? 'Добавьте первый тест для своего класса.'
+                ? 'Добавьте первую работу для своего класса.'
                 : 'Пока нет активных заданий.',
             style: Theme.of(context).textTheme.headlineSmall,
             textAlign: TextAlign.center,
@@ -259,7 +259,7 @@ class _EmptyState extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             isTeacher
-                ? 'Создайте тест и наполните его задачами по теме урока.'
+                ? 'Создайте работу и наполните её задачами по теме урока.'
                 : 'Сообщите преподавателю, что вы готовы приступить к работе.',
             style: const TextStyle(color: Colors.black54),
             textAlign: TextAlign.center,
@@ -269,7 +269,7 @@ class _EmptyState extends StatelessWidget {
             ElevatedButton.icon(
               onPressed: onCreate,
               icon: const Icon(Icons.add),
-              label: const Text('Создать тест'),
+              label: const Text('Создать работу'),
             ),
         ],
       ),
@@ -335,7 +335,7 @@ class _TestCard extends StatelessWidget {
                           ),
                           const SizedBox(height: 6),
                           Text(
-                            test.description ?? 'Практика по информатике',
+                            test.description ?? 'Практика по предмету',
                             style: const TextStyle(color: Colors.black54),
                           ),
                           const SizedBox(height: 10),
@@ -351,7 +351,7 @@ class _TestCard extends StatelessWidget {
                               ),
                               _InfoChip(
                                 icon: Icons.code,
-                                label: test.subject ?? 'Информатика',
+                                label: test.subject ?? 'Предмет',
                               ),
                               _InfoChip(
                                 icon: Icons.help_outline,
@@ -396,7 +396,7 @@ class _TestCard extends StatelessWidget {
                     if (isTeacher && onEdit != null)
                       OutlinedButton(
                         onPressed: onEdit,
-                        child: const Text('Параметры теста'),
+                        child: const Text('Параметры работы'),
                       )
                   ],
                 )

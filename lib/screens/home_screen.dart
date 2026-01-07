@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:school_test_app/services/auth_service.dart';
-import 'package:school_test_app/utils/subjects_store.dart';
 import 'package:school_test_app/theme/app_theme.dart';
+import 'package:school_test_app/utils/subject_suggestions.dart';
 import 'package:school_test_app/widgets/app_navigator.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -18,7 +17,6 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    subjectsStore.fetchSubjects();
     _checkUserRole();
   }
 
@@ -36,7 +34,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: appHeader(
-        'Информатика',
+        'Цифровой класс',
         actions: [
           IconButton(
             icon: const Icon(Icons.notifications_none_rounded),
@@ -81,11 +79,6 @@ class _HomeScreenState extends State<HomeScreen> {
               icon: Icons.code_rounded,
               title: 'Задачи и упражнения',
               onTap: () => Navigator.pushNamed(context, '/exercises'),
-            ),
-            _MenuTile(
-              icon: Icons.school_rounded,
-              title: 'Экзамен',
-              onTap: () => Navigator.pushNamed(context, '/exams'),
             ),
             if (_isTeacher)
               _MenuTile(
@@ -139,12 +132,6 @@ class _HomeScreenState extends State<HomeScreen> {
                     description: 'Алгоритмы, задачи и подготовка к ОГЭ/ЕГЭ.',
                     onTap: () => Navigator.pushNamed(context, '/exercises'),
                   ),
-                  _ActionCard(
-                    icon: Icons.school_rounded,
-                    title: 'Экзамены',
-                    description: 'Создавайте и проходите контрольные работы.',
-                    onTap: () => Navigator.pushNamed(context, '/exams'),
-                  ),
                   if (_isTeacher)
                     _ActionCard(
                       icon: Icons.groups_2_rounded,
@@ -156,50 +143,25 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               const SizedBox(height: 20),
               Text(
-                'Темы информатики',
+                'Темы курса',
                 style: Theme.of(context).textTheme.headlineSmall,
               ),
               const SizedBox(height: 12),
-              Observer(
-                builder: (_) {
-                  final subjects = subjectsStore.subjects;
-
-                  if (subjects.isEmpty) {
-                    return Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(16),
+              Wrap(
+                spacing: 10,
+                runSpacing: 10,
+                children: subjectSuggestions
+                    .map(
+                      (subject) => Chip(
+                        label: Text(subject),
+                        avatar: const Icon(
+                          Icons.memory,
+                          size: 18,
+                          color: AppTheme.primaryColor,
+                        ),
                       ),
-                      child: Row(
-                        children: const [
-                          Icon(Icons.hourglass_empty, color: AppTheme.primaryColor),
-                          SizedBox(width: 12),
-                          Expanded(
-                            child: Text(
-                              'Загружаем темы курса…',
-                              style: TextStyle(fontSize: 16),
-                            ),
-                          )
-                        ],
-                      ),
-                    );
-                  }
-
-                  return Wrap(
-                    spacing: 10,
-                    runSpacing: 10,
-                    children: subjects
-                        .map(
-                          (subject) => Chip(
-                            label: Text(subject),
-                            avatar: const Icon(Icons.memory, size: 18, color: AppTheme.primaryColor),
-                          ),
-                        )
-                        .toList(),
-                  );
-                },
+                    )
+                    .toList(),
               ),
               const SizedBox(height: 20),
               _FocusCard(
@@ -213,7 +175,7 @@ class _HomeScreenState extends State<HomeScreen> {
               _FocusCard(
                 title: 'Подготовка к контрольной',
                 description:
-                    'Сборники задач, быстрые тренировки и возможность сформировать экзамен под тему урока.',
+                    'Сборники задач, быстрые тренировки и подбор заданий под тему урока.',
                 actionLabel: 'Открыть практику',
                 onTap: () => Navigator.pushNamed(context, '/exercises'),
               ),
@@ -368,12 +330,12 @@ class _HeroBanner extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           Text(
-            'Информатика — легко',
+            'Цифровая учёба — просто',
             style: Theme.of(context).textTheme.headlineMedium,
           ),
           const SizedBox(height: 6),
           Text(
-            'Планируйте уроки, закрепляйте алгоритмы и готовьтесь к экзамену. Все материалы в одном месте.',
+            'Планируйте уроки, закрепляйте навыки и готовьтесь к контрольным. Все материалы в одном месте.',
             style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: Colors.white70),
           ),
           const SizedBox(height: 14),

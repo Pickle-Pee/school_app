@@ -52,6 +52,26 @@ class _CreateQuestionScreenState extends State<CreateQuestionScreen> {
     if (!_formKey.currentState!.validate()) return;
     _formKey.currentState!.save();
 
+    if (_questionType != 'text_input') {
+      final options = _options ?? [];
+      final correctAnswers = _correctAnswers ?? [];
+      if (options.isEmpty) {
+        _showValidationError('Добавьте варианты ответов.');
+        return;
+      }
+      if (correctAnswers.isEmpty) {
+        _showValidationError('Укажите правильные ответы.');
+        return;
+      }
+      final invalid = correctAnswers.where((item) => !options.contains(item));
+      if (invalid.isNotEmpty) {
+        _showValidationError(
+          'Правильные ответы должны быть среди вариантов.',
+        );
+        return;
+      }
+    }
+
     try {
       // Создаём модель вопроса
       final question = QuestionModel(
@@ -79,6 +99,12 @@ class _CreateQuestionScreenState extends State<CreateQuestionScreen> {
         SnackBar(content: Text('Ошибка: $e')),
       );
     }
+  }
+
+  void _showValidationError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
   }
 
   @override
@@ -239,12 +265,18 @@ class _CreateQuestionScreenState extends State<CreateQuestionScreen> {
   Widget _buildOptionsField() {
     return TextFormField(
       initialValue: _options?.join(', ') ?? '',
-      onSaved: (value) {
-        if (value != null && value.trim().isNotEmpty) {
-          _options = value.split(',').map((e) => e.trim()).toList();
-        } else {
-          _options = [];
+      validator: (value) {
+        if (_questionType == 'text_input') {
+          return null;
         }
+        final parsed = _parseList(value);
+        if (parsed.isEmpty) {
+          return 'Укажите варианты ответов';
+        }
+        return null;
+      },
+      onSaved: (value) {
+        _options = _parseList(value);
       },
     );
   }
@@ -253,12 +285,18 @@ class _CreateQuestionScreenState extends State<CreateQuestionScreen> {
   Widget _buildCorrectAnswersField() {
     return TextFormField(
       initialValue: _correctAnswers?.join(', ') ?? '',
-      onSaved: (value) {
-        if (value != null && value.trim().isNotEmpty) {
-          _correctAnswers = value.split(',').map((e) => e.trim()).toList();
-        } else {
-          _correctAnswers = [];
+      validator: (value) {
+        if (_questionType == 'text_input') {
+          return null;
         }
+        final parsed = _parseList(value);
+        if (parsed.isEmpty) {
+          return 'Укажите правильные ответы';
+        }
+        return null;
+      },
+      onSaved: (value) {
+        _correctAnswers = _parseList(value);
       },
     );
   }
@@ -271,6 +309,17 @@ class _CreateQuestionScreenState extends State<CreateQuestionScreen> {
         _textAnswer = value;
       },
     );
+  }
+
+  List<String> _parseList(String? value) {
+    if (value == null || value.trim().isEmpty) {
+      return [];
+    }
+    return value
+        .split(',')
+        .map((item) => item.trim())
+        .where((item) => item.isNotEmpty)
+        .toList();
   }
 }
 

@@ -38,43 +38,6 @@ class AuthService {
     }
   }
 
-  /// Регистрация ученика
-  static Future<bool> registerStudent(String email, String password) async {
-    final url = "${Config.baseUrl}/register/student";
-    final body = {
-      "email": email,
-      "password": password,
-    };
-    final response = await http.post(
-      Uri.parse(url),
-      headers: {"Content-Type": "application/json"},
-      body: json.encode(body),
-    );
-
-    return response.statusCode == 200 || response.statusCode == 201;
-  }
-
-  /// Регистрация учителя (требуется auth_code)
-  static Future<bool> registerTeacher(
-    String email,
-    String password,
-    String authCode,
-  ) async {
-    final url = "${Config.baseUrl}/register/teacher";
-    final body = {
-      "email": email,
-      "password": password,
-      "auth_code": authCode,
-    };
-    final response = await http.post(
-      Uri.parse(url),
-      headers: {"Content-Type": "application/json"},
-      body: json.encode(body),
-    );
-
-    return response.statusCode == 200 || response.statusCode == 201;
-  }
-
 // Пример: вызываем /me и возвращаем поле "role"
 // Если /me вернёт {"email": "...", "first_name": "...", "last_name": "...", "role": "teacher"}
   static Future<String?> getUserType() async {

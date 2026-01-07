@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:school_test_app/utils/session_manager.dart';
+import 'package:school_test_app/app.dart';
 import 'package:school_test_app/services/auth_service.dart';
-import 'package:school_test_app/widgets/app_navigator.dart';
+import 'package:school_test_app/utils/session_manager.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -9,7 +9,7 @@ void main() async {
   // Проверяем сессию при запуске
   final initialRoute = await getInitialRoute();
 
-  runApp(AppNavigator(initialRoute: initialRoute));
+  runApp(App(initialRoute: initialRoute));
 }
 
 Future<String> getInitialRoute() async {

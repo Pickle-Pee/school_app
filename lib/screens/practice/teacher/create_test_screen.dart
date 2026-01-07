@@ -3,6 +3,7 @@ import 'package:school_test_app/models/test_model.dart';
 import 'package:school_test_app/services/test_service.dart';
 import 'package:school_test_app/config.dart';
 import 'package:school_test_app/theme/app_theme.dart';
+import 'package:school_test_app/utils/subject_suggestions.dart';
 
 class CreateTestScreen extends StatefulWidget {
   final TestModel? existingTest;
@@ -25,13 +26,7 @@ class _CreateTestScreenState extends State<CreateTestScreen> {
 
   // Пример статических списков
   final List<int> _grades = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
-  final List<String> _subjects = [
-    'Математика',
-    'Физика',
-    'Химия',
-    'Биология',
-    'История'
-  ];
+  final List<String> _subjects = subjectSuggestions;
 
   @override
   void initState() {
@@ -105,7 +100,7 @@ class _CreateTestScreenState extends State<CreateTestScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            isEdit ? 'Редактирование теста' : 'Создание теста',
+                            isEdit ? 'Редактирование работы' : 'Создание работы',
                             style: const TextStyle(
                               color: Colors.white,
                               fontSize: 22,
@@ -144,7 +139,7 @@ class _CreateTestScreenState extends State<CreateTestScreen> {
                               TextFormField(
                                 initialValue: _title,
                                 decoration: const InputDecoration(
-                                  labelText: 'Название теста',
+                                  labelText: 'Название работы',
                                   prefixIcon: Icon(Icons.title_rounded),
                                 ),
                                 validator: (value) => (value == null || value.isEmpty)
@@ -204,6 +199,15 @@ class _CreateTestScreenState extends State<CreateTestScreen> {
                                   });
                                 },
                               ),
+                              const SizedBox(height: 12),
+                              _SubjectChips(
+                                subjects: _subjects,
+                                onSelected: (value) {
+                                  setState(() {
+                                    _subject = value;
+                                  });
+                                },
+                              ),
                             ],
                           ),
                           const SizedBox(height: 24),
@@ -212,7 +216,7 @@ class _CreateTestScreenState extends State<CreateTestScreen> {
                             child: ElevatedButton.icon(
                               onPressed: _onSave,
                               icon: const Icon(Icons.save_outlined),
-                              label: const Text('Сохранить тест'),
+                              label: const Text('Сохранить работу'),
                             ),
                           ),
                         ],
@@ -225,6 +229,32 @@ class _CreateTestScreenState extends State<CreateTestScreen> {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _SubjectChips extends StatelessWidget {
+  const _SubjectChips({
+    required this.subjects,
+    required this.onSelected,
+  });
+
+  final List<String> subjects;
+  final ValueChanged<String> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: subjects
+          .map(
+            (subject) => ActionChip(
+              label: Text(subject),
+              onPressed: () => onSelected(subject),
+            ),
+          )
+          .toList(),
     );
   }
 }

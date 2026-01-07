@@ -17,6 +17,7 @@ class TakeTestScreen extends StatefulWidget {
 class _TakeTestScreenState extends State<TakeTestScreen> {
   late final TestsService _testsService;
   late Future<TestModel> _futureTest;
+  List<QuestionModel> _questions = [];
 
   // Храним выбранные ответы юзера
   // (например, Map<questionId, List<String>> или Map<int, dynamic> ... )
@@ -31,8 +32,13 @@ class _TakeTestScreenState extends State<TakeTestScreen> {
   }
 
   void _loadTest() {
+    final future = _testsService.getTestById(widget.testId);
     setState(() {
-      _futureTest = _testsService.getTestById(widget.testId);
+      _futureTest = future;
+    });
+    future.then((test) {
+      if (!mounted) return;
+      setState(() => _questions = test.questions);
     });
   }
 
@@ -46,6 +52,9 @@ class _TakeTestScreenState extends State<TakeTestScreen> {
 
   // Отправляем на бэкенд
   Future<void> _submitAnswers() async {
+    if (!_validateAnswers()) {
+      return;
+    }
     // Сформировать структуру для /student/submit-test
     // Например: { test_id: 123, answers: [ {question_id: 1, answer: [...]}, ...] }
     final List<Map<String, dynamic>> answersList =
@@ -71,7 +80,7 @@ class _TakeTestScreenState extends State<TakeTestScreen> {
       await _testsService.submitTest(body);
       // Показать результат, вернуться, etc
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Тест отправлен!")),
+        const SnackBar(content: Text("Практика отправлена!")),
       );
       Navigator.pop(context, true);
     } catch (e) {
@@ -79,6 +88,37 @@ class _TakeTestScreenState extends State<TakeTestScreen> {
         SnackBar(content: Text("Ошибка отправки: $e")),
       );
     }
+  }
+
+  bool _validateAnswers() {
+    for (final question in _questions) {
+      final answer = userAnswers[question.id];
+      if (question.questionType == 'text_input') {
+        final text = (answer is String) ? answer.trim() : '';
+        if (text.isEmpty) {
+          _showValidationError('Ответьте на вопрос "${question.questionText}".');
+          return false;
+        }
+      } else if (question.questionType == 'multiple_choice') {
+        final values = answer is Set ? answer : <String>{};
+        if (values.isEmpty) {
+          _showValidationError('Выберите вариант(ы) для "${question.questionText}".');
+          return false;
+        }
+      } else if (question.questionType == 'single_choice') {
+        if (answer == null || (answer is String && answer.trim().isEmpty)) {
+          _showValidationError('Выберите вариант для "${question.questionText}".');
+          return false;
+        }
+      }
+    }
+    return true;
+  }
+
+  void _showValidationError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
   }
 
   @override
@@ -95,12 +135,12 @@ class _TakeTestScreenState extends State<TakeTestScreen> {
           }
           final test = snapshot.data;
           if (test == null) {
-            return const Center(child: Text("Тест не найден"));
+            return const Center(child: Text("Практика не найдена"));
           }
 
           final questions = test.questions;
           if (questions.isEmpty) {
-            return const Center(child: Text("В тесте нет вопросов"));
+            return const Center(child: Text("В практике нет вопросов"));
           }
 
           return Container(
@@ -283,7 +323,7 @@ class _TestHero extends StatelessWidget {
               ),
               const SizedBox(width: 6),
               const Text(
-                'Практика по информатике',
+                'Практика по предмету',
                 style: TextStyle(
                   color: Colors.white70,
                   fontWeight: FontWeight.w600,
@@ -307,7 +347,7 @@ class _TestHero extends StatelessWidget {
               const SizedBox(width: 8),
               _HeroChip(
                 icon: Icons.code_rounded,
-                label: test.subject ?? 'Информатика',
+                label: test.subject ?? 'Предмет',
               ),
             ],
           ),

@@ -65,7 +65,7 @@ class _QuestionsScreenState extends State<QuestionsScreen> {
                     SizedBox(width: 12),
                     Expanded(
                       child: Text(
-                        'Вопросы теста',
+                        'Вопросы работы',
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: 22,
@@ -97,7 +97,7 @@ class _QuestionsScreenState extends State<QuestionsScreen> {
 
                       final test = snapshot.data;
                       if (test == null) {
-                        return const Center(child: Text('Тест не найден'));
+                        return const Center(child: Text('Работа не найдена'));
                       }
 
                       final questions = test.questions;
@@ -278,7 +278,7 @@ class _EmptyQuestions extends StatelessWidget {
                 color: AppTheme.primaryColor, size: 64),
             const SizedBox(height: 12),
             Text(
-              'Добавьте вопросы, чтобы ученики могли приступать к тесту.',
+              'Добавьте вопросы, чтобы ученики могли приступать к работе.',
               style: Theme.of(context).textTheme.headlineSmall,
               textAlign: TextAlign.center,
             ),
