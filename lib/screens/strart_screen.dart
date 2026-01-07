@@ -52,6 +52,24 @@ class StartScreen extends StatelessWidget {
                         child: const Text('Войти'),
                       ),
                     ),
+                    const SizedBox(height: 12),
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton(
+                        onPressed: () =>
+                            Navigator.pushNamed(context, '/register'),
+                        child: const Text('Регистрация'),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: TextButton(
+                        onPressed: () =>
+                            Navigator.pushNamed(context, '/password_reset'),
+                        child: const Text('Сбросить пароль'),
+                      ),
+                    ),
                   ],
                 ),
               ),

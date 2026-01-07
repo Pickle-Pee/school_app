@@ -26,11 +26,13 @@ class _CreateQuestionScreenState extends State<CreateQuestionScreen> {
   late final TestsService _testsService;
 
   // Параметры вопроса
-  String _questionType = 'text_input'; // по умолчанию
-  String _questionText = '';
+  String _questionType = 'text'; // по умолчанию
+  String _prompt = '';
   List<String>? _options;
   List<String>? _correctAnswers;
-  String? _textAnswer;
+  String? _correctAnswer;
+  bool _isRequired = true;
+  int _points = 1;
 
   @override
   void initState() {
@@ -40,11 +42,16 @@ class _CreateQuestionScreenState extends State<CreateQuestionScreen> {
     // Если есть вопрос (редактирование), инициализируем поля
     final q = widget.question;
     if (q != null) {
-      _questionType = q.questionType;
-      _questionText = q.questionText;
+      _questionType = q.type;
+      _prompt = q.prompt;
       _options = q.options;
-      _correctAnswers = q.correctAnswers;
-      _textAnswer = q.textAnswer;
+      if (q.correctAnswer is List) {
+        _correctAnswers = List<String>.from(q.correctAnswer as List);
+      } else {
+        _correctAnswer = q.correctAnswer?.toString();
+      }
+      _isRequired = q.required;
+      _points = q.points;
     }
   }
 
@@ -52,23 +59,35 @@ class _CreateQuestionScreenState extends State<CreateQuestionScreen> {
     if (!_formKey.currentState!.validate()) return;
     _formKey.currentState!.save();
 
-    if (_questionType != 'text_input') {
+    if (_questionType != 'text') {
       final options = _options ?? [];
-      final correctAnswers = _correctAnswers ?? [];
       if (options.isEmpty) {
         _showValidationError('Добавьте варианты ответов.');
         return;
       }
-      if (correctAnswers.isEmpty) {
-        _showValidationError('Укажите правильные ответы.');
-        return;
+      if (_questionType == 'select') {
+        if (_correctAnswer == null || _correctAnswer!.isEmpty) {
+          _showValidationError('Укажите правильный ответ.');
+          return;
+        }
+        if (!options.contains(_correctAnswer)) {
+          _showValidationError('Правильный ответ должен быть в вариантах.');
+          return;
+        }
       }
-      final invalid = correctAnswers.where((item) => !options.contains(item));
-      if (invalid.isNotEmpty) {
-        _showValidationError(
-          'Правильные ответы должны быть среди вариантов.',
-        );
-        return;
+      if (_questionType == 'checkbox') {
+        final correctAnswers = _correctAnswers ?? [];
+        if (correctAnswers.isEmpty) {
+          _showValidationError('Укажите правильные ответы.');
+          return;
+        }
+        final invalid = correctAnswers.where((item) => !options.contains(item));
+        if (invalid.isNotEmpty) {
+          _showValidationError(
+            'Правильные ответы должны быть среди вариантов.',
+          );
+          return;
+        }
       }
     }
 
@@ -77,19 +96,37 @@ class _CreateQuestionScreenState extends State<CreateQuestionScreen> {
       final question = QuestionModel(
         id: widget.question?.id ??
             0, // при создании 0, сервер сам сгенерирует ID
-        questionType: _questionType,
-        questionText: _questionText,
+        type: _questionType,
+        prompt: _prompt,
         options: _options,
-        correctAnswers: _correctAnswers,
-        textAnswer: _textAnswer,
+        required: _isRequired,
+        points: _points,
+        correctAnswer:
+            _questionType == 'checkbox' ? _correctAnswers : _correctAnswer,
       );
 
       if (widget.question == null) {
         // создаём новый вопрос
-        await _testsService.addQuestion(widget.testId, question);
+        final assignment = await _testsService.getAssignmentById(
+          widget.testId,
+          isTeacher: true,
+        );
+        await _testsService.addQuestion(
+          widget.testId,
+          question,
+          assignment: assignment,
+        );
       } else {
         // редактируем существующий вопрос
-        await _testsService.updateQuestion(widget.testId, question);
+        final assignment = await _testsService.getAssignmentById(
+          widget.testId,
+          isTeacher: true,
+        );
+        await _testsService.updateQuestion(
+          widget.testId,
+          question,
+          assignment: assignment,
+        );
       }
 
       // Возвращаемся назад и сообщаем об успешном сохранении
@@ -190,15 +227,19 @@ class _CreateQuestionScreenState extends State<CreateQuestionScreen> {
                             children: [
                               _buildQuestionTextField(),
                               const SizedBox(height: 12),
-                              if (_questionType != 'text_input') ...[
+                              _buildMetaFields(),
+                              const SizedBox(height: 12),
+                              if (_questionType != 'text') ...[
                                 const Text('Варианты ответов (через запятую):'),
                                 _buildOptionsField(),
                                 const SizedBox(height: 12),
-                                const Text('Правильные ответы (через запятую):'),
-                                _buildCorrectAnswersField(),
-                              ] else ...[
-                                const Text('Ожидаемый ответ (необязательно):'),
-                                _buildTextAnswerField(),
+                                if (_questionType == 'checkbox') ...[
+                                  const Text('Правильные ответы (через запятую):'),
+                                  _buildCorrectAnswersField(),
+                                ] else ...[
+                                  const Text('Правильный ответ:'),
+                                  _buildCorrectAnswerField(),
+                                ],
                               ],
                             ],
                           ),
@@ -229,15 +270,13 @@ class _CreateQuestionScreenState extends State<CreateQuestionScreen> {
     return DropdownButtonFormField<String>(
       value: _questionType,
       items: const [
-        DropdownMenuItem(child: Text('Текстовый ввод'), value: 'text_input'),
-        DropdownMenuItem(
-            child: Text('Множественный выбор'), value: 'multiple_choice'),
-        DropdownMenuItem(
-            child: Text('Одиночный выбор'), value: 'single_choice'),
+        DropdownMenuItem(child: Text('Текстовый ввод'), value: 'text'),
+        DropdownMenuItem(child: Text('Множественный выбор'), value: 'checkbox'),
+        DropdownMenuItem(child: Text('Одиночный выбор'), value: 'select'),
       ],
       onChanged: (value) {
         setState(() {
-          _questionType = value ?? 'text_input';
+          _questionType = value ?? 'text';
         });
       },
       decoration: const InputDecoration(
@@ -250,14 +289,43 @@ class _CreateQuestionScreenState extends State<CreateQuestionScreen> {
   /// Поле для текста вопроса
   Widget _buildQuestionTextField() {
     return TextFormField(
-      initialValue: _questionText,
+      initialValue: _prompt,
       decoration: const InputDecoration(
         labelText: 'Текст вопроса',
         prefixIcon: Icon(Icons.text_snippet_outlined),
       ),
       validator: (value) =>
           (value == null || value.isEmpty) ? 'Введите текст вопроса' : null,
-      onSaved: (value) => _questionText = value ?? '',
+      onSaved: (value) => _prompt = value ?? '',
+    );
+  }
+
+  Widget _buildMetaFields() {
+    return Column(
+      children: [
+        TextFormField(
+          initialValue: _points.toString(),
+          keyboardType: TextInputType.number,
+          decoration: const InputDecoration(
+            labelText: 'Баллы',
+            prefixIcon: Icon(Icons.stars_outlined),
+          ),
+          validator: (value) {
+            final parsed = int.tryParse(value ?? '');
+            if (parsed == null || parsed <= 0) {
+              return 'Введите баллы';
+            }
+            return null;
+          },
+          onSaved: (value) => _points = int.tryParse(value ?? '') ?? 1,
+        ),
+        SwitchListTile.adaptive(
+          value: _isRequired,
+          title: const Text('Обязательный'),
+          contentPadding: EdgeInsets.zero,
+          onChanged: (value) => setState(() => _isRequired = value),
+        ),
+      ],
     );
   }
 
@@ -266,7 +334,7 @@ class _CreateQuestionScreenState extends State<CreateQuestionScreen> {
     return TextFormField(
       initialValue: _options?.join(', ') ?? '',
       validator: (value) {
-        if (_questionType == 'text_input') {
+        if (_questionType == 'text') {
           return null;
         }
         final parsed = _parseList(value);
@@ -286,7 +354,7 @@ class _CreateQuestionScreenState extends State<CreateQuestionScreen> {
     return TextFormField(
       initialValue: _correctAnswers?.join(', ') ?? '',
       validator: (value) {
-        if (_questionType == 'text_input') {
+        if (_questionType == 'text') {
           return null;
         }
         final parsed = _parseList(value);
@@ -301,12 +369,11 @@ class _CreateQuestionScreenState extends State<CreateQuestionScreen> {
     );
   }
 
-  /// Поле для «ожидаемого ответа» (для text_input)
-  Widget _buildTextAnswerField() {
+  Widget _buildCorrectAnswerField() {
     return TextFormField(
-      initialValue: _textAnswer,
+      initialValue: _correctAnswer,
       onSaved: (value) {
-        _textAnswer = value;
+        _correctAnswer = value?.trim();
       },
     );
   }

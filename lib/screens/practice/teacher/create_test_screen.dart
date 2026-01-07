@@ -21,11 +21,14 @@ class _CreateTestScreenState extends State<CreateTestScreen> {
   String _title = '';
   String _description = '';
 
-  int? _grade;
+  int? _classId;
   String? _subject;
+  int? _topicId;
+  String _type = 'practice';
+  int _maxAttempts = 1;
+  bool _published = true;
 
   // Пример статических списков
-  final List<int> _grades = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
   final List<String> _subjects = subjectSuggestions;
 
   @override
@@ -36,8 +39,12 @@ class _CreateTestScreenState extends State<CreateTestScreen> {
     if (widget.existingTest != null) {
       _title = widget.existingTest!.title;
       _description = widget.existingTest!.description ?? '';
-      _grade = widget.existingTest!.grade;
+      _classId = widget.existingTest!.classId;
       _subject = widget.existingTest!.subject;
+      _topicId = widget.existingTest!.topicId;
+      _type = widget.existingTest!.type ?? 'practice';
+      _maxAttempts = widget.existingTest!.maxAttempts ?? 1;
+      _published = widget.existingTest!.published ?? true;
     }
   }
 
@@ -48,15 +55,30 @@ class _CreateTestScreenState extends State<CreateTestScreen> {
     try {
       if (widget.existingTest == null) {
         // Создаём
-        await _testsService.createTest(_title, _description, _grade, _subject);
+        await _testsService.createAssignment(
+          classId: _classId ?? 0,
+          subject: _subject ?? '',
+          topicId: _topicId ?? 0,
+          type: _type,
+          title: _title,
+          description: _description,
+          maxAttempts: _maxAttempts,
+          published: _published,
+          questions: const [],
+        );
       } else {
-        // Редактируем (пропишем в сервисе updateTest или что-то такое)
-        await _testsService.updateTest(
+        // Редактируем (PATCH /teacher/assignments/{id})
+        await _testsService.updateAssignment(
           widget.existingTest!.id,
-          _title,
-          _description,
-          _grade,
-          _subject,
+          classId: _classId ?? 0,
+          subject: _subject ?? '',
+          topicId: _topicId ?? 0,
+          type: _type,
+          title: _title,
+          description: _description,
+          maxAttempts: _maxAttempts,
+          published: _published,
+          questions: widget.existingTest!.questions,
         );
       }
       Navigator.pop(context, true);
@@ -162,23 +184,20 @@ class _CreateTestScreenState extends State<CreateTestScreen> {
                           _FormSection(
                             title: 'Параметры',
                             children: [
-                              DropdownButtonFormField<int>(
-                                value: _grade,
+                              TextFormField(
+                                initialValue:
+                                    _classId != null ? _classId.toString() : '',
+                                keyboardType: TextInputType.number,
                                 decoration: const InputDecoration(
-                                  labelText: 'Класс',
+                                  labelText: 'ID класса',
                                   prefixIcon: Icon(Icons.school_outlined),
                                 ),
-                                items: _grades.map((g) {
-                                  return DropdownMenuItem<int>(
-                                    value: g,
-                                    child: Text('$g класс'),
-                                  );
-                                }).toList(),
-                                onChanged: (val) {
-                                  setState(() {
-                                    _grade = val;
-                                  });
-                                },
+                                validator: (value) =>
+                                    (value == null || value.isEmpty)
+                                        ? 'Введите ID класса'
+                                        : null,
+                                onSaved: (value) =>
+                                    _classId = int.tryParse(value ?? ''),
                               ),
                               const SizedBox(height: 12),
                               DropdownButtonFormField<String>(
@@ -193,6 +212,10 @@ class _CreateTestScreenState extends State<CreateTestScreen> {
                                     child: Text(subj),
                                   );
                                 }).toList(),
+                                validator: (value) =>
+                                    value == null || value.isEmpty
+                                        ? 'Выберите предмет'
+                                        : null,
                                 onChanged: (val) {
                                   setState(() {
                                     _subject = val;
@@ -200,6 +223,64 @@ class _CreateTestScreenState extends State<CreateTestScreen> {
                                 },
                               ),
                               const SizedBox(height: 12),
+                              TextFormField(
+                                initialValue:
+                                    _topicId != null ? _topicId.toString() : '',
+                                keyboardType: TextInputType.number,
+                                decoration: const InputDecoration(
+                                  labelText: 'ID темы',
+                                  prefixIcon: Icon(Icons.topic_outlined),
+                                ),
+                                validator: (value) =>
+                                    (value == null || value.isEmpty)
+                                        ? 'Введите ID темы'
+                                        : null,
+                                onSaved: (value) =>
+                                    _topicId = int.tryParse(value ?? ''),
+                              ),
+                              const SizedBox(height: 12),
+                              DropdownButtonFormField<String>(
+                                value: _type,
+                                decoration: const InputDecoration(
+                                  labelText: 'Тип работы',
+                                  prefixIcon: Icon(Icons.assignment_outlined),
+                                ),
+                                items: const [
+                                  DropdownMenuItem(
+                                      value: 'practice', child: Text('Практика')),
+                                  DropdownMenuItem(
+                                      value: 'homework', child: Text('Домашняя')),
+                                ],
+                                onChanged: (val) {
+                                  setState(() {
+                                    _type = val ?? 'practice';
+                                  });
+                                },
+                              ),
+                              const SizedBox(height: 12),
+                              TextFormField(
+                                initialValue: _maxAttempts.toString(),
+                                keyboardType: TextInputType.number,
+                                decoration: const InputDecoration(
+                                  labelText: 'Максимум попыток',
+                                  prefixIcon: Icon(Icons.repeat_rounded),
+                                ),
+                                validator: (value) {
+                                  final parsed = int.tryParse(value ?? '');
+                                  if (parsed == null || parsed <= 0) {
+                                    return 'Введите число попыток';
+                                  }
+                                  return null;
+                                },
+                                onSaved: (value) => _maxAttempts =
+                                    int.tryParse(value ?? '') ?? 1,
+                              ),
+                              SwitchListTile.adaptive(
+                                value: _published,
+                                title: const Text('Опубликовано'),
+                                onChanged: (value) =>
+                                    setState(() => _published = value),
+                              ),
                               _SubjectChips(
                                 subjects: _subjects,
                                 onSelected: (value) {

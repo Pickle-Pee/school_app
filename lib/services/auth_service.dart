@@ -5,19 +5,19 @@ import 'package:school_test_app/config.dart';
 
 class AuthService {
   /// Логин
-  /// [email], [password], опционально [authCode] — если это учитель
+  /// [phone], [password], опционально [teacherCode] — если это учитель
   static Future<bool> login({
-    required String email,
+    required String phone,
     required String password,
-    String? authCode,
+    String? teacherCode,
   }) async {
-    final url = "${Config.baseUrl}/login";
+    final url = "${Config.baseUrl}/auth/login";
     final body = {
-      "email": email,
+      "phone": phone,
       "password": password,
     };
-    if (authCode != null && authCode.isNotEmpty) {
-      body["auth_code"] = authCode;
+    if (teacherCode != null && teacherCode.isNotEmpty) {
+      body["teacher_code"] = teacherCode;
     }
 
     final response = await http.post(
@@ -29,9 +29,9 @@ class AuthService {
     if (response.statusCode == 200) {
       final data = json.decode(response.body);
       final accessToken = data["access_token"];
-      final refreshToken = data["refresh_token"];
+      final tokenType = data["token_type"] ?? "bearer";
       // Сохраняем токены
-      await SessionManager.saveTokens(accessToken, refreshToken);
+      await SessionManager.saveTokens(accessToken, tokenType);
       return true;
     } else {
       return false;
@@ -39,7 +39,7 @@ class AuthService {
   }
 
 // Пример: вызываем /me и возвращаем поле "role"
-// Если /me вернёт {"email": "...", "first_name": "...", "last_name": "...", "role": "teacher"}
+// Если /me вернёт {"role": "teacher", "profile": {...}}
   static Future<String?> getUserType() async {
     final token = await SessionManager.getAccessToken();
     if (token == null) return null; // не авторизован
@@ -59,65 +59,34 @@ class AuthService {
     }
   }
 
-  /// Рефреш токенов
-  static Future<bool> refreshTokens() async {
-    final refreshToken = await SessionManager.getRefreshToken();
-    if (refreshToken == null) return false;
-
-    final url = "${Config.baseUrl}/refresh";
-    try {
-      final response = await http.post(
-        Uri.parse(url),
-        headers: {"Content-Type": "application/json"},
-        body: json.encode({"refresh_token": refreshToken}),
-      );
-
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        await SessionManager.saveTokens(
-          data["access_token"],
-          data["refresh_token"],
-        );
-        return true;
-      } else {
-        // Если рефреш не успешен, очищаем
-        await SessionManager.clearTokens();
-        return false;
-      }
-    } catch (e) {
-      return false;
-    }
-  }
-
   /// Логаут (удаляет refresh-токен и локальные токены)
   static Future<void> logout() async {
-    // 1) Попробуем удалить сессию на бэкенде
-    await _logoutOnBackend();
-
-    // 2) Локально чистим
+    // Контракт не описывает logout: чистим локальные токены.
     await SessionManager.clearTokens();
   }
 
-  /// Доп. метод: вызвать POST /logout, чтобы на бэкенде удалить refresh-сессию
-  static Future<void> _logoutOnBackend() async {
-    final refreshToken = await SessionManager.getRefreshToken();
-    if (refreshToken == null) {
-      // Нет refreshToken — нечего удалять
-      return;
+  /// Установка/сброс пароля
+  static Future<bool> setPassword({
+    required String phone,
+    required String newPassword,
+    String? teacherCode,
+  }) async {
+    final url = "${Config.baseUrl}/auth/set-password";
+    final body = {
+      "phone": phone,
+      "new_password": newPassword,
+    };
+    if (teacherCode != null && teacherCode.isNotEmpty) {
+      body["teacher_code"] = teacherCode;
     }
 
-    final url = "${Config.baseUrl}/logout";
-    try {
-      final response = await http.post(
-        Uri.parse(url),
-        headers: {"Content-Type": "application/json"},
-        body: json.encode({"refresh_token": refreshToken}),
-      );
-      // Даже если вернётся ошибка, мы всё равно почистим локальные токены,
-      // поэтому тут не делаем строгую проверку response.statusCode.
-    } catch (e) {
-      // Игнорируем ошибку сети
-    }
+    final response = await http.post(
+      Uri.parse(url),
+      headers: {"Content-Type": "application/json"},
+      body: json.encode(body),
+    );
+
+    return response.statusCode == 200;
   }
 
   /// Получить текущий access_token из хранилища

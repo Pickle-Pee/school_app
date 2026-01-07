@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart'; // для getApplicationDocumentsDirectory / getTemporaryDirectory
 import 'package:flutter_pdfview/flutter_pdfview.dart'; // из flutter_pdfview
@@ -8,9 +7,14 @@ import 'package:school_test_app/config.dart';
 import 'package:school_test_app/theme/app_theme.dart';
 
 class PdfViewScreen extends StatefulWidget {
-  final int materialId;
+  final String title;
+  final String fileUrl;
 
-  const PdfViewScreen({Key? key, required this.materialId}) : super(key: key);
+  const PdfViewScreen({
+    Key? key,
+    required this.title,
+    required this.fileUrl,
+  }) : super(key: key);
 
   @override
   State<PdfViewScreen> createState() => _PdfViewScreenState();
@@ -44,12 +48,13 @@ class _PdfViewScreenState extends State<PdfViewScreen> {
 
     try {
       // 1) Получаем байты
-      Uint8List pdfBytes =
-          await _materialsService.getMaterialPdfBytes(widget.materialId);
+      final pdfBytes =
+          await _materialsService.getTheoryFileBytes(widget.fileUrl);
 
       // 2) Сохраняем во временный файл (например, getTemporaryDirectory)
       final tempDir = await getTemporaryDirectory();
-      final tempPath = '${tempDir.path}/temp_pdf_${widget.materialId}.pdf';
+      final safeName = DateTime.now().millisecondsSinceEpoch;
+      final tempPath = '${tempDir.path}/temp_pdf_$safeName.pdf';
 
       File file = File(tempPath);
       await file.writeAsBytes(pdfBytes, flush: true);
@@ -72,7 +77,7 @@ class _PdfViewScreenState extends State<PdfViewScreen> {
     return Scaffold(
       backgroundColor: AppTheme.background,
       appBar: AppBar(
-        title: const Text("Материал"),
+        title: Text(widget.title),
         flexibleSpace: Container(
           decoration: const BoxDecoration(gradient: AppTheme.primaryGradient),
         ),

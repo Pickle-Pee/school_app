@@ -20,14 +20,26 @@ class _TestsScreenState extends State<TestsScreen> {
   late Future<List<TestModel>> _futureTests;
 
   bool _isTeacher = false;
+  final TextEditingController _classIdController = TextEditingController();
+  final TextEditingController _subjectController = TextEditingController();
+  final TextEditingController _topicIdController = TextEditingController();
+  String _type = 'practice';
 
   @override
   void initState() {
     super.initState();
     _testsService = TestsService(Config.baseUrl);
+    _futureTests = Future.value([]);
 
     _checkUserType();
-    _fetchTests();
+  }
+
+  @override
+  void dispose() {
+    _classIdController.dispose();
+    _subjectController.dispose();
+    _topicIdController.dispose();
+    super.dispose();
   }
 
   Future<void> _checkUserType() async {
@@ -35,12 +47,32 @@ class _TestsScreenState extends State<TestsScreen> {
     setState(() {
       _isTeacher = (role == 'teacher');
     });
+    _fetchTests();
   }
 
   void _fetchTests() {
+    final subject = _subjectController.text.trim();
+    final classId = int.tryParse(_classIdController.text.trim());
+    final topicId = int.tryParse(_topicIdController.text.trim());
+    if (subject.isEmpty || (_isTeacher && classId == null)) {
+      setState(() {
+        _futureTests = Future.value([]);
+      });
+      return;
+    }
+
     setState(() {
-      _futureTests = _testsService
-          .getMyTests(); // или getTestsForStudent(), если разделили эндпоинты
+      _futureTests = _isTeacher
+          ? _testsService.getTeacherAssignments(
+              classId: classId ?? 0,
+              subject: subject,
+              type: _type,
+            )
+          : _testsService.getStudentAssignments(
+              subject: subject,
+              type: _type,
+              topicId: topicId,
+            );
     });
   }
 
@@ -66,6 +98,19 @@ class _TestsScreenState extends State<TestsScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               _Header(isTeacher: _isTeacher),
+              _Filters(
+                isTeacher: _isTeacher,
+                classIdController: _classIdController,
+                subjectController: _subjectController,
+                topicIdController: _topicIdController,
+                type: _type,
+                onTypeChanged: (value) {
+                  setState(() {
+                    _type = value;
+                  });
+                },
+                onApply: _fetchTests,
+              ),
               Expanded(
                 child: Container(
                   decoration: const BoxDecoration(
@@ -105,7 +150,8 @@ class _TestsScreenState extends State<TestsScreen> {
                             onDelete: _isTeacher
                                 ? () async {
                                     try {
-                                      await _testsService.deleteTest(test.id);
+                                      await _testsService
+                                          .deleteAssignment(test.id);
                                       _fetchTests();
                                     } catch (e) {
                                       ScaffoldMessenger.of(context).showSnackBar(
@@ -165,6 +211,92 @@ class _TestsScreenState extends State<TestsScreen> {
               label: const Text('Создать работу'),
             )
           : null,
+    );
+  }
+}
+
+class _Filters extends StatelessWidget {
+  final bool isTeacher;
+  final TextEditingController classIdController;
+  final TextEditingController subjectController;
+  final TextEditingController topicIdController;
+  final String type;
+  final ValueChanged<String> onTypeChanged;
+  final VoidCallback onApply;
+
+  const _Filters({
+    required this.isTeacher,
+    required this.classIdController,
+    required this.subjectController,
+    required this.topicIdController,
+    required this.type,
+    required this.onTypeChanged,
+    required this.onApply,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+      child: Card(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: Padding(
+          padding: const EdgeInsets.all(12.0),
+          child: Column(
+            children: [
+              if (isTeacher)
+                TextField(
+                  controller: classIdController,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                    labelText: 'ID класса',
+                    prefixIcon: Icon(Icons.school_outlined),
+                  ),
+                ),
+              if (isTeacher) const SizedBox(height: 12),
+              TextField(
+                controller: subjectController,
+                decoration: const InputDecoration(
+                  labelText: 'Предмет',
+                  prefixIcon: Icon(Icons.menu_book_rounded),
+                ),
+              ),
+              const SizedBox(height: 12),
+              if (!isTeacher)
+                TextField(
+                  controller: topicIdController,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                    labelText: 'ID темы',
+                    prefixIcon: Icon(Icons.topic_outlined),
+                  ),
+                ),
+              if (!isTeacher) const SizedBox(height: 12),
+              DropdownButtonFormField<String>(
+                value: type,
+                decoration: const InputDecoration(
+                  labelText: 'Тип работы',
+                  prefixIcon: Icon(Icons.assignment_outlined),
+                ),
+                items: const [
+                  DropdownMenuItem(value: 'practice', child: Text('Практика')),
+                  DropdownMenuItem(value: 'homework', child: Text('Домашняя')),
+                ],
+                onChanged: (value) => onTypeChanged(value ?? 'practice'),
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: onApply,
+                  icon: const Icon(Icons.search),
+                  label: const Text('Показать работы'),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
@@ -345,14 +477,21 @@ class _TestCard extends StatelessWidget {
                             children: [
                               _InfoChip(
                                 icon: Icons.school_rounded,
-                                label: test.grade != null
-                                    ? '${test.grade} класс'
+                                label: test.classId != null
+                                    ? 'Класс ${test.classId}'
                                     : 'Любой класс',
                               ),
                               _InfoChip(
                                 icon: Icons.code,
                                 label: test.subject ?? 'Предмет',
                               ),
+                              if (test.type != null)
+                                _InfoChip(
+                                  icon: Icons.assignment_outlined,
+                                  label: test.type == 'homework'
+                                      ? 'Домашняя'
+                                      : 'Практика',
+                                ),
                               _InfoChip(
                                 icon: Icons.help_outline,
                                 label:

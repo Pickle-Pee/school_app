@@ -1,7 +1,6 @@
 // services/materials_service.dart
 
 import 'dart:convert';
-import 'dart:typed_data';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart'; // Для MediaType
 import 'package:mime/mime.dart'; // Для lookupMimeType
@@ -12,12 +11,21 @@ class MaterialsService {
 
   MaterialsService(this.baseUrl);
 
-  /// Список материалов (id, title, file_path, uploaded_at)
-  Future<List<Map<String, dynamic>>> listMaterials() async {
+  /// Список материалов по теме
+  Future<List<Map<String, dynamic>>> listTheory({
+    required bool isTeacher,
+    required int classId,
+    required String subject,
+    int? topicId,
+  }) async {
     final token = await AuthService.getAccessToken();
     if (token == null) throw Exception("No access token. User not authorized?");
 
-    final url = Uri.parse("$baseUrl/materials");
+    final query = isTeacher
+        ? 'class_id=$classId&subject=$subject'
+        : 'subject=$subject&topic_id=${topicId ?? ''}';
+    final prefix = isTeacher ? 'teacher' : 'student';
+    final url = Uri.parse("$baseUrl/$prefix/theory?$query");
     final response = await http.get(url, headers: {
       'Authorization': 'Bearer $token',
     });
@@ -29,39 +37,39 @@ class MaterialsService {
     }
   }
 
-  /// Получить байты PDF через GET /materials/{material_id}/content
-  Future<Uint8List> getMaterialPdfBytes(int materialId) async {
-    final token = await AuthService.getAccessToken();
-    if (token == null) throw Exception("No access token. User not authorized?");
-
-    final url = Uri.parse("$baseUrl/materials/$materialId/content");
-    final response = await http.get(url, headers: {
-      'Authorization': 'Bearer $token',
-    });
+  /// Получить файл теории по прямой ссылке
+  Future<List<int>> getTheoryFileBytes(String fileUrl) async {
+    final response = await http.get(Uri.parse(fileUrl));
     if (response.statusCode == 200) {
-      return response.bodyBytes; // PDF-байты
+      return response.bodyBytes;
     } else {
       throw Exception(
-          "Failed to get material content. Code: ${response.statusCode}");
+          "Failed to get theory file. Code: ${response.statusCode}");
     }
   }
 
   /// Загрузить PDF (учитель).
-  /// [title] - название, [filePath] - путь к файлу (из file_picker)
-  Future<void> uploadMaterial(String title, String filePath) async {
+  Future<void> uploadTheoryFile({
+    required int classId,
+    required String subject,
+    required int topicId,
+    required String filePath,
+  }) async {
     final token = await AuthService.getAccessToken();
     if (token == null) {
       throw Exception("No access token. User not authorized?");
     }
 
-    final url = Uri.parse('$baseUrl/materials/upload');
+    final url = Uri.parse('$baseUrl/teacher/theory');
 
     // Multipart-запрос
     final request = http.MultipartRequest('POST', url);
     request.headers['Authorization'] = 'Bearer $token';
 
-    // Поле title
-    request.fields['title'] = title;
+    request.fields['class_id'] = classId.toString();
+    request.fields['subject'] = subject;
+    request.fields['topic_id'] = topicId.toString();
+    request.fields['kind'] = 'file';
 
     // Определяем MIME-тип файла
     final mimeType = lookupMimeType(filePath) ?? 'application/pdf';

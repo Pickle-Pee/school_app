@@ -32,7 +32,10 @@ class _TakeTestScreenState extends State<TakeTestScreen> {
   }
 
   void _loadTest() {
-    final future = _testsService.getTestById(widget.testId);
+    final future = _testsService.getAssignmentById(
+      widget.testId,
+      isTeacher: false,
+    );
     setState(() {
       _futureTest = future;
     });
@@ -55,29 +58,14 @@ class _TakeTestScreenState extends State<TakeTestScreen> {
     if (!_validateAnswers()) {
       return;
     }
-    // Сформировать структуру для /student/submit-test
-    // Например: { test_id: 123, answers: [ {question_id: 1, answer: [...]}, ...] }
-    final List<Map<String, dynamic>> answersList =
-        userAnswers.entries.map((entry) {
-      final questionId = entry.key;
-      final userAnswer = entry.value;
-      final answerToSubmit =
-          (userAnswer is Set) ? userAnswer.toList() : userAnswer;
-      return {
-        "question_id": questionId,
-        "answer": answerToSubmit,
-      };
-    }).toList();
-
-    final body = {
-      "test_id": widget.testId,
-      "answers": answersList,
+    final Map<String, dynamic> answers = {
+      for (final entry in userAnswers.entries)
+        entry.key.toString():
+            entry.value is Set ? (entry.value as Set).toList() : entry.value
     };
 
     try {
-      // Допустим, у TestsService есть метод submitTest(body)
-      // Или вы сделаете отдельный service (StudentService)
-      await _testsService.submitTest(body);
+      await _testsService.submitAssignment(widget.testId, answers);
       // Показать результат, вернуться, etc
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Практика отправлена!")),
@@ -92,22 +80,25 @@ class _TakeTestScreenState extends State<TakeTestScreen> {
 
   bool _validateAnswers() {
     for (final question in _questions) {
+      if (!question.required) {
+        continue;
+      }
       final answer = userAnswers[question.id];
-      if (question.questionType == 'text_input') {
+      if (question.type == 'text') {
         final text = (answer is String) ? answer.trim() : '';
         if (text.isEmpty) {
-          _showValidationError('Ответьте на вопрос "${question.questionText}".');
+          _showValidationError('Ответьте на вопрос "${question.prompt}".');
           return false;
         }
-      } else if (question.questionType == 'multiple_choice') {
+      } else if (question.type == 'checkbox') {
         final values = answer is Set ? answer : <String>{};
         if (values.isEmpty) {
-          _showValidationError('Выберите вариант(ы) для "${question.questionText}".');
+          _showValidationError('Выберите вариант(ы) для "${question.prompt}".');
           return false;
         }
-      } else if (question.questionType == 'single_choice') {
+      } else if (question.type == 'select') {
         if (answer == null || (answer is String && answer.trim().isEmpty)) {
-          _showValidationError('Выберите вариант для "${question.questionText}".');
+          _showValidationError('Выберите вариант для "${question.prompt}".');
           return false;
         }
       }
@@ -196,11 +187,11 @@ class _TakeTestScreenState extends State<TakeTestScreen> {
   }
 
   Widget _buildQuestionItem(QuestionModel question, int position) {
-    // Пример: если questionType == 'multiple_choice', отобразить чекбоксы,
-    // если 'single_choice', RadioList, если 'text_input' => TextField
+    // Пример: если type == 'checkbox', отобразить чекбоксы,
+    // если 'select', RadioList, если 'text' => TextField
     // В конце сохраняем ответ в userAnswers[question.id]
 
-    if (question.questionType == 'text_input') {
+    if (question.type == 'text') {
       // Текстовый ответ
       final controller = _textControllers.putIfAbsent(
         question.id,
@@ -224,7 +215,7 @@ class _TakeTestScreenState extends State<TakeTestScreen> {
           ),
         ),
       );
-    } else if (question.questionType == 'multiple_choice') {
+    } else if (question.type == 'checkbox') {
       // Для упрощения, сделаем CheckboxListTile
       // (на практике нужно хранить userAnswers[question.id] как List<String>)
       final options = question.options ?? [];
@@ -236,7 +227,7 @@ class _TakeTestScreenState extends State<TakeTestScreen> {
               options.map((opt) => _buildCheckboxOption(question.id, opt)).toList(),
         ),
       );
-    } else if (question.questionType == 'single_choice') {
+    } else if (question.type == 'select') {
       // RadioListTile
       final options = question.options ?? [];
       // ...
@@ -256,7 +247,7 @@ class _TakeTestScreenState extends State<TakeTestScreen> {
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           child: Padding(
             padding: const EdgeInsets.all(16.0),
-            child: Text("Неизвестный тип вопроса: ${question.questionType}"),
+          child: Text("Неизвестный тип вопроса: ${question.type}"),
           ),
         ),
       );
@@ -342,7 +333,8 @@ class _TestHero extends StatelessWidget {
             children: [
               _HeroChip(
                 icon: Icons.school_rounded,
-                label: test.grade != null ? '${test.grade} класс' : 'Без класса',
+                label:
+                    test.classId != null ? 'Класс ${test.classId}' : 'Без класса',
               ),
               const SizedBox(width: 8),
               _HeroChip(
@@ -351,6 +343,13 @@ class _TestHero extends StatelessWidget {
               ),
             ],
           ),
+          if (test.type != null) ...[
+            const SizedBox(height: 8),
+            _HeroChip(
+              icon: Icons.assignment_outlined,
+              label: test.type == 'homework' ? 'Домашняя работа' : 'Практика',
+            ),
+          ],
           if ((test.description ?? '').isNotEmpty) ...[
             const SizedBox(height: 12),
             Text(
@@ -437,7 +436,7 @@ class _QuestionCard extends StatelessWidget {
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
-                      question.questionText,
+                      question.prompt,
                       style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w700,
@@ -453,7 +452,7 @@ class _QuestionCard extends StatelessWidget {
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(
-                      _typeLabel(question.questionType),
+                      _typeLabel(question.type),
                       style: const TextStyle(
                         color: AppTheme.primaryColor,
                         fontWeight: FontWeight.w600,
@@ -473,9 +472,9 @@ class _QuestionCard extends StatelessWidget {
 
   String _typeLabel(String type) {
     switch (type) {
-      case 'multiple_choice':
+      case 'checkbox':
         return 'Множественный выбор';
-      case 'single_choice':
+      case 'select':
         return 'Одиночный выбор';
       default:
         return 'Свободный ответ';

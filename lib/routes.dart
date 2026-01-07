@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:school_test_app/screens/about/about_screen.dart';
 import 'package:school_test_app/screens/auth/login_screen.dart';
+import 'package:school_test_app/screens/auth/password_reset_screen.dart';
+import 'package:school_test_app/screens/auth/registration_screen.dart';
 import 'package:school_test_app/screens/home_screen.dart';
 import 'package:school_test_app/screens/profile/edit_profile_screen.dart';
 import 'package:school_test_app/screens/profile/performance_screen.dart';
@@ -14,6 +16,8 @@ import 'package:school_test_app/screens/theory/materials_list_screen.dart';
 Map<String, WidgetBuilder> get appRoutes => {
       '/': (_) => const StartScreen(),
       '/login': (_) => const LoginScreen(),
+      '/register': (_) => const RegistrationScreen(),
+      '/password_reset': (_) => const PasswordResetScreen(),
       '/home': (_) => const HomeScreen(),
       '/profile': (_) => const ProfileScreen(),
       '/edit_profile': (_) => const EditProfileScreen(),

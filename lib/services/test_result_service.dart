@@ -8,42 +8,19 @@ class TestResultsService {
 
   TestResultsService({required this.baseUrl});
 
-  /// Получить все результаты по тесту (Teacher)
-  /// /teacher/tests/{test_id}/results
-  Future<List<dynamic>> getTestResults(int testId) async {
+  /// Получить результаты по заданию (Teacher)
+  Future<Map<String, dynamic>> getAssignmentSubmissions({
+    required int assignmentId,
+    int page = 1,
+    int pageSize = 20,
+  }) async {
     final token = await AuthService.getAccessToken();
     if (token == null) {
       throw Exception("Unauthorized: no access token");
     }
 
-    final url = Uri.parse('$baseUrl/teacher/tests/$testId/results');
-    final response = await http.get(
-      url,
-      headers: {
-        'Authorization': 'Bearer $token',
-      },
-    );
-
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      // Предположим, бэкенд возвращает List[StudentTestResultOut]
-      return data as List<dynamic>;
-    } else {
-      throw Exception(
-          "Failed to load test results. Status code: ${response.statusCode}");
-    }
-  }
-
-  /// Получить детальный результат прохождения
-  /// /teacher/tests/{test_id}/results/{result_id}
-  Future<Map<String, dynamic>> getTestResultDetail(
-      int testId, int resultId) async {
-    final token = await AuthService.getAccessToken();
-    if (token == null) {
-      throw Exception("Unauthorized: no access token");
-    }
-
-    final url = Uri.parse('$baseUrl/teacher/tests/$testId/results/$resultId');
+    final url = Uri.parse(
+        '$baseUrl/teacher/submissions?assignment_id=$assignmentId&page=$page&page_size=$pageSize');
     final response = await http.get(
       url,
       headers: {
@@ -55,26 +32,27 @@ class TestResultsService {
       return jsonDecode(response.body) as Map<String, dynamic>;
     } else {
       throw Exception(
-          "Failed to load test result detail. Status code: ${response.statusCode}");
+          "Failed to load test results. Status code: ${response.statusCode}");
     }
   }
 
-  /// Выставить/обновить оценку
-  /// /teacher/tests/{test_id}/results/{result_id}/grade
-  Future<Map<String, dynamic>> setGrade(
-      int testId, int resultId, String grade) async {
+  /// Сброс попытки
+  Future<bool> resetAttempt({
+    required int studentId,
+    required int assignmentId,
+  }) async {
     final token = await AuthService.getAccessToken();
     if (token == null) {
       throw Exception("Unauthorized: no access token");
     }
 
-    final url =
-        Uri.parse('$baseUrl/teacher/tests/$testId/results/$resultId/grade');
+    final url = Uri.parse('$baseUrl/teacher/attempts/reset');
     final body = json.encode({
-      "grade": grade,
+      "student_id": studentId,
+      "assignment_id": assignmentId,
     });
 
-    final response = await http.put(
+    final response = await http.post(
       url,
       headers: {
         'Authorization': 'Bearer $token',
@@ -83,12 +61,6 @@ class TestResultsService {
       body: body,
     );
 
-    if (response.statusCode == 200) {
-      // Бэкенд возвращает обновлённый StudentTestResultOut
-      return jsonDecode(response.body) as Map<String, dynamic>;
-    } else {
-      throw Exception(
-          "Failed to set grade. Status code: ${response.statusCode}");
-    }
+    return response.statusCode == 200;
   }
 }
