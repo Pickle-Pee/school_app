@@ -1,145 +1,391 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:school_test_app/screens/students/student_list_screen.dart';
-import 'package:school_test_app/utils/interceptor.dart';
+import 'package:school_test_app/models/education_models.dart';
+import 'package:school_test_app/models/profile_models.dart';
+import 'package:school_test_app/services/auth_service.dart';
+import 'package:school_test_app/services/education_service.dart';
+import 'package:school_test_app/services/grades_service.dart';
+import 'package:school_test_app/services/profile_service.dart';
 import 'package:school_test_app/widgets/app_navigator.dart';
 
-/// Экран "История тестирования/результатов".
-/// Если [studentId] == null -> ученик смотрит свои результаты (/student/my-results).
-/// Если [studentId] != null -> учитель смотрит результаты выбранного ученика (/teacher/student/{id}/results).
 class TestHistoryScreen extends StatefulWidget {
-  final int? studentId;
-
-  const TestHistoryScreen({Key? key, this.studentId}) : super(key: key);
+  const TestHistoryScreen({Key? key}) : super(key: key);
 
   @override
-  _TestHistoryScreenState createState() => _TestHistoryScreenState();
+  State<TestHistoryScreen> createState() => _TestHistoryScreenState();
 }
 
 class _TestHistoryScreenState extends State<TestHistoryScreen> {
-  bool _isLoading = false;
-  String? _error;
+  late final GradesService _gradesService;
+  late final EducationService _educationService;
+  late final ProfileService _profileService;
+  late Future<Map<String, dynamic>> _futureData;
 
-  /// Список результатов, каждый элемент – Map<String, dynamic>:
-  /// test_id, exam_id, subject, grade, score, final_grade, created_at, и т.д.
-  List<Map<String, dynamic>> _allResults = [];
+  bool _isTeacher = false;
+  List<ClassItem> _classes = [];
+  List<TopicItem> _topics = [];
+  List<SubjectItem> _subjects = [];
+  int? _selectedClassId;
+  int? _selectedTopicId;
+  String? _selectedSubject;
+  String _type = 'practice';
+  final TextEditingController _teacherSubjectController =
+      TextEditingController();
 
   @override
   void initState() {
     super.initState();
-    // Если текущий пользователь учитель и studentId не указан, перенаправляем на экран выбора ученика
-    if (widget.studentId == null && _isTeacherUser()) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => const StudentsListScreen()),
-        );
+    _gradesService = GradesService();
+    _educationService = EducationService();
+    _profileService = ProfileService();
+    _futureData = Future.value({});
+
+    _checkUserType();
+  }
+
+  @override
+  void dispose() {
+    _teacherSubjectController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _checkUserType() async {
+    final role = await AuthService.getUserType();
+    setState(() {
+      _isTeacher = (role == 'teacher');
+    });
+    await _loadFilters();
+    _loadHistory();
+  }
+
+  Future<void> _loadFilters() async {
+    if (_isTeacher) {
+      final classes = await _educationService.getTeacherClasses();
+      ProfileView? profile;
+      try {
+        profile = await _profileService.getProfile();
+      } catch (_) {
+        profile = null;
+      }
+      setState(() {
+        _classes = classes;
+        _selectedClassId = classes.isNotEmpty ? classes.first.id : null;
+        _selectedSubject = profile?.subject ?? _selectedSubject;
+        _teacherSubjectController.text = _selectedSubject ?? '';
+      });
+      await _loadTopics();
+    } else {
+      final subjects = await _educationService.getStudentSubjects();
+      setState(() {
+        _subjects = subjects;
+        _selectedSubject = subjects.isNotEmpty ? subjects.first.name : null;
+      });
+      await _loadTopics();
+    }
+  }
+
+  Future<void> _loadTopics() async {
+    if (_selectedSubject == null || _selectedSubject!.isEmpty) {
+      setState(() {
+        _topics = [];
+        _selectedTopicId = null;
+      });
+      return;
+    }
+    if (_isTeacher) {
+      if (_selectedClassId == null) return;
+      final topics = await _educationService.getTeacherTopics(
+        classId: _selectedClassId!,
+        subject: _selectedSubject!,
+      );
+      setState(() {
+        _topics = topics;
+        _selectedTopicId = topics.isNotEmpty ? topics.first.id : null;
       });
     } else {
-      _fetchTestHistory();
+      final topics = await _educationService.getStudentTopics(
+        subject: _selectedSubject!,
+      );
+      setState(() {
+        _topics = topics;
+        _selectedTopicId = topics.isNotEmpty ? topics.first.id : null;
+      });
     }
   }
 
-  bool _isTeacherUser() {
-    // Здесь необходимо определить, что текущий пользователь является учителем.
-    // Если у вас хранится роль в каком-либо глобальном состоянии, используйте её.
-    // Для примера возвращаем true, чтобы показать логику.
-    return true;
-  }
+  void _loadHistory() {
+    final subject = _selectedSubject;
+    final classId = _selectedClassId;
+    final topicId = _selectedTopicId;
+    if (subject == null ||
+        subject.isEmpty ||
+        (_isTeacher && (classId == null || topicId == null))) {
+      setState(() {
+        _futureData = Future.value({});
+      });
+      return;
+    }
 
-  Future<void> _fetchTestHistory() async {
     setState(() {
-      _isLoading = true;
-      _error = null;
+      _futureData = _isTeacher
+          ? _gradesService.getTeacherGradesByTopic(
+              classId: classId ?? 0,
+              topicId: topicId ?? 0,
+              type: _type,
+            )
+          : _gradesService.getStudentGrades(subject: subject);
     });
-
-    try {
-      // Если studentId не указан (для ученика) – вызывается '/student/my-results',
-      // а если указан (учитель) – '/teacher/student/{studentId}/results'
-      final endpoint = widget.studentId == null
-          ? '/student/my-results'
-          : '/teacher/student/${widget.studentId}/results';
-
-      final response = await ApiInterceptor.get(endpoint);
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body) as List;
-        setState(() {
-          _allResults = data.map((e) => Map<String, dynamic>.from(e)).toList();
-        });
-      } else {
-        setState(() {
-          _error = 'Ошибка: ${response.statusCode}';
-        });
-      }
-    } catch (e) {
-      setState(() {
-        _error = 'Ошибка: $e';
-      });
-    } finally {
-      setState(() {
-        _isLoading = false;
-      });
-    }
   }
 
   @override
   Widget build(BuildContext context) {
-    // Если передан studentId, значит экран открывает учитель
-    final isTeacher = widget.studentId != null;
-
     return Scaffold(
-      appBar: appHeader(isTeacher ? 'Результаты ученика' : 'История тестирования'),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : (_error != null)
-              ? Center(child: Text(_error!))
-              : _buildContent(),
-    );
-  }
+      appBar: appHeader(_isTeacher ? 'История работ класса' : 'История работ'),
+      body: FutureBuilder<Map<String, dynamic>>(
+        future: _futureData,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (snapshot.hasError) {
+            return _MessageCard(text: 'Ошибка: ${snapshot.error}');
+          }
 
-  Widget _buildContent() {
-    // Разбиваем результаты на две группы: тесты и экзамены
-    final testResults = _allResults.where((r) => r['test_id'] != null).toList();
-    final examResults = _allResults.where((r) => r['exam_id'] != null).toList();
-
-    if (testResults.isEmpty && examResults.isEmpty) {
-      return const Center(child: Text('Нет результатов'));
-    }
-
-    return Padding(
-      padding: const EdgeInsets.all(16.0),
-      child: ListView(
-        children: [
-          // Раздел "Тесты (упражнения)"
-          ExpansionTile(
-            title: const Text('Тесты (упражнения)'),
-            initiallyExpanded: true,
-            children: testResults.map((res) => _buildResultItem(res)).toList(),
-          ),
-          const SizedBox(height: 16),
-          // Раздел "Экзамены"
-          ExpansionTile(
-            title: const Text('Экзамены'),
-            children: examResults.map((res) => _buildResultItem(res)).toList(),
-          ),
-        ],
+          return ListView(
+            padding: const EdgeInsets.all(16),
+            children: [
+              _FiltersCard(
+                isTeacher: _isTeacher,
+                classes: _classes,
+                subjects: _subjects,
+                topics: _topics,
+                selectedClassId: _selectedClassId,
+                selectedSubject: _selectedSubject,
+                selectedTopicId: _selectedTopicId,
+                type: _type,
+                teacherSubjectController: _teacherSubjectController,
+                onClassChanged: (value) async {
+                  setState(() {
+                    _selectedClassId = value;
+                  });
+                  await _loadTopics();
+                },
+                onSubjectChanged: (value) async {
+                  setState(() {
+                    _selectedSubject = value;
+                  });
+                  await _loadTopics();
+                },
+                onTopicChanged: (value) {
+                  setState(() {
+                    _selectedTopicId = value;
+                  });
+                },
+                onTypeChanged: (value) {
+                  setState(() {
+                    _type = value;
+                  });
+                },
+                onApply: _loadHistory,
+              ),
+              const SizedBox(height: 16),
+              _HistoryList(
+                isTeacher: _isTeacher,
+                data: snapshot.data ?? const {},
+              ),
+            ],
+          );
+        },
       ),
     );
   }
+}
 
-  Widget _buildResultItem(Map<String, dynamic> result) {
-    final subject = result['subject']?.toString() ?? '';
-    final grade = result['grade']?.toString() ?? '';
-    final score = result['score']?.toString() ?? '';
-    final finalGrade = result['final_grade']?.toString() ?? '';
-    final createdAt = result['created_at']?.toString() ?? '';
+class _FiltersCard extends StatelessWidget {
+  final bool isTeacher;
+  final List<ClassItem> classes;
+  final List<SubjectItem> subjects;
+  final List<TopicItem> topics;
+  final int? selectedClassId;
+  final String? selectedSubject;
+  final int? selectedTopicId;
+  final String type;
+  final TextEditingController teacherSubjectController;
+  final ValueChanged<int?> onClassChanged;
+  final ValueChanged<String?> onSubjectChanged;
+  final ValueChanged<int?> onTopicChanged;
+  final ValueChanged<String> onTypeChanged;
+  final VoidCallback onApply;
 
-    return ListTile(
-      title: Text('Предмет: $subject'),
-      subtitle: Text('Класс: $grade\nОценка: $finalGrade'),
-      trailing: Text(
-        createdAt.split('T').join(' '),
-        style: const TextStyle(fontSize: 12),
+  const _FiltersCard({
+    required this.isTeacher,
+    required this.classes,
+    required this.subjects,
+    required this.topics,
+    required this.selectedClassId,
+    required this.selectedSubject,
+    required this.selectedTopicId,
+    required this.type,
+    required this.teacherSubjectController,
+    required this.onClassChanged,
+    required this.onSubjectChanged,
+    required this.onTopicChanged,
+    required this.onTypeChanged,
+    required this.onApply,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Padding(
+        padding: const EdgeInsets.all(12.0),
+        child: Column(
+          children: [
+            if (isTeacher)
+              DropdownButtonFormField<int>(
+                value: selectedClassId,
+                decoration: const InputDecoration(
+                  labelText: 'Класс',
+                  prefixIcon: Icon(Icons.school_outlined),
+                ),
+                items: classes
+                    .map(
+                      (item) => DropdownMenuItem(
+                        value: item.id,
+                        child: Text(item.name.isNotEmpty
+                            ? item.name
+                            : '${item.grade}${item.letter}'),
+                      ),
+                    )
+                    .toList(),
+                onChanged: onClassChanged,
+              ),
+            if (isTeacher) const SizedBox(height: 12),
+            isTeacher
+                ? TextField(
+                    controller: teacherSubjectController,
+                    decoration: const InputDecoration(
+                      labelText: 'Предмет',
+                      prefixIcon: Icon(Icons.menu_book_rounded),
+                    ),
+                    onChanged: onSubjectChanged,
+                  )
+                : DropdownButtonFormField<String>(
+                    value: selectedSubject,
+                    decoration: const InputDecoration(
+                      labelText: 'Предмет',
+                      prefixIcon: Icon(Icons.menu_book_rounded),
+                    ),
+                    items: subjects
+                        .map(
+                          (item) => DropdownMenuItem(
+                            value: item.name,
+                            child: Text(item.name),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: onSubjectChanged,
+                  ),
+            const SizedBox(height: 12),
+            DropdownButtonFormField<int>(
+              value: selectedTopicId,
+              decoration: const InputDecoration(
+                labelText: 'Тема',
+                prefixIcon: Icon(Icons.topic_outlined),
+              ),
+              items: topics
+                  .map(
+                    (item) => DropdownMenuItem(
+                      value: item.id,
+                      child: Text(item.title),
+                    ),
+                  )
+                  .toList(),
+              onChanged: onTopicChanged,
+            ),
+            const SizedBox(height: 12),
+            DropdownButtonFormField<String>(
+              value: type,
+              decoration: const InputDecoration(
+                labelText: 'Тип работы',
+                prefixIcon: Icon(Icons.assignment_outlined),
+              ),
+              items: const [
+                DropdownMenuItem(value: 'practice', child: Text('Практика')),
+                DropdownMenuItem(value: 'homework', child: Text('Домашняя')),
+              ],
+              onChanged: (value) => onTypeChanged(value ?? 'practice'),
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: onApply,
+                icon: const Icon(Icons.search),
+                label: const Text('Показать'),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _HistoryList extends StatelessWidget {
+  final bool isTeacher;
+  final Map<String, dynamic> data;
+
+  const _HistoryList({required this.isTeacher, required this.data});
+
+  @override
+  Widget build(BuildContext context) {
+    final items = data['items'] as List<dynamic>? ?? [];
+    if (items.isEmpty) {
+      return const _MessageCard(text: 'История пуста.');
+    }
+
+    return Card(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          children: items.map((item) {
+            final map = item as Map<String, dynamic>;
+            return ListTile(
+              contentPadding: EdgeInsets.zero,
+              title: Text(map['assignment_title'] ?? 'Работа'),
+              subtitle: Text(
+                isTeacher
+                    ? (map['student_name'] ?? '')
+                    : (map['topic_title'] ?? ''),
+              ),
+              trailing: Text(
+                (map['grade'] ?? '—').toString(),
+                style: const TextStyle(fontWeight: FontWeight.w700),
+              ),
+            );
+          }).toList(),
+        ),
+      ),
+    );
+  }
+}
+
+class _MessageCard extends StatelessWidget {
+  final String text;
+
+  const _MessageCard({required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Card(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Text(text, textAlign: TextAlign.center),
+        ),
       ),
     );
   }

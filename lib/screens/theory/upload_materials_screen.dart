@@ -5,14 +5,22 @@ import 'package:school_test_app/config.dart';
 import 'package:school_test_app/theme/app_theme.dart';
 
 class UploadMaterialScreen extends StatefulWidget {
-  const UploadMaterialScreen({Key? key}) : super(key: key);
+  final int classId;
+  final String subject;
+  final int topicId;
+
+  const UploadMaterialScreen({
+    Key? key,
+    required this.classId,
+    required this.subject,
+    required this.topicId,
+  }) : super(key: key);
 
   @override
   State<UploadMaterialScreen> createState() => _UploadMaterialScreenState();
 }
 
 class _UploadMaterialScreenState extends State<UploadMaterialScreen> {
-  final TextEditingController _titleController = TextEditingController();
   String? _selectedFilePath;
 
   late final MaterialsService _materialsService;
@@ -38,13 +46,6 @@ class _UploadMaterialScreenState extends State<UploadMaterialScreen> {
 
   /// Отправляем файл на сервер
   Future<void> _upload() async {
-    final title = _titleController.text.trim();
-    if (title.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Введите название материала")),
-      );
-      return;
-    }
     if (_selectedFilePath == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Выберите PDF-файл")),
@@ -54,7 +55,12 @@ class _UploadMaterialScreenState extends State<UploadMaterialScreen> {
 
     try {
       // Вызываем наш сервис, который делает multipart POST
-      await _materialsService.uploadMaterial(title, _selectedFilePath!);
+      await _materialsService.uploadTheoryFile(
+        classId: widget.classId,
+        subject: widget.subject,
+        topicId: widget.topicId,
+        filePath: _selectedFilePath!,
+      );
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Файл успешно загружен")),
@@ -129,14 +135,6 @@ class _UploadMaterialScreenState extends State<UploadMaterialScreen> {
                                   style: TextStyle(
                                     fontSize: 16,
                                     fontWeight: FontWeight.w800,
-                                  ),
-                                ),
-                                const SizedBox(height: 12),
-                                TextField(
-                                  controller: _titleController,
-                                  decoration: const InputDecoration(
-                                    labelText: "Название материала",
-                                    prefixIcon: Icon(Icons.title_rounded),
                                   ),
                                 ),
                                 const SizedBox(height: 12),

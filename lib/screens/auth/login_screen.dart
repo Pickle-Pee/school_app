@@ -10,18 +10,18 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  final TextEditingController _authCodeController = TextEditingController();
+  final TextEditingController _teacherCodeController = TextEditingController();
 
   bool _isTeacher = false;
 
   Future<void> _login(BuildContext context) async {
     try {
       final success = await AuthService.login(
-        email: _emailController.text.trim(),
+        phone: _phoneController.text.trim(),
         password: _passwordController.text.trim(),
-        authCode: _isTeacher ? _authCodeController.text.trim() : null,
+        teacherCode: _isTeacher ? _teacherCodeController.text.trim() : null,
       );
 
       if (success) {
@@ -39,6 +39,14 @@ class _LoginScreenState extends State<LoginScreen> {
         SnackBar(content: Text("Ошибка: $e")),
       );
     }
+  }
+
+  @override
+  void dispose() {
+    _phoneController.dispose();
+    _passwordController.dispose();
+    _teacherCodeController.dispose();
+    super.dispose();
   }
 
   @override
@@ -89,7 +97,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                             SizedBox(height: 4),
                             Text(
-                              'Вход в уроки информатики и цифровую практику',
+                              'Вход в цифровой класс',
                               style: TextStyle(
                                 color: Colors.white70,
                                 fontSize: 14,
@@ -140,12 +148,12 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                       const SizedBox(height: 12),
                       TextField(
-                        controller: _emailController,
+                        controller: _phoneController,
                         decoration: const InputDecoration(
-                          labelText: "Email",
-                          prefixIcon: Icon(Icons.email_outlined),
+                          labelText: "Телефон",
+                          prefixIcon: Icon(Icons.phone_outlined),
                         ),
-                        keyboardType: TextInputType.emailAddress,
+                        keyboardType: TextInputType.phone,
                       ),
                       const SizedBox(height: 12),
                       TextField(
@@ -159,9 +167,9 @@ class _LoginScreenState extends State<LoginScreen> {
                       if (_isTeacher) ...[
                         const SizedBox(height: 12),
                         TextField(
-                          controller: _authCodeController,
+                          controller: _teacherCodeController,
                           decoration: const InputDecoration(
-                            labelText: "Код авторизации",
+                            labelText: "Код преподавателя",
                             prefixIcon: Icon(Icons.badge_outlined),
                           ),
                         ),
@@ -173,12 +181,20 @@ class _LoginScreenState extends State<LoginScreen> {
                         label: const Text("Войти"),
                       ),
                       const SizedBox(height: 8),
-                      TextButton(
-                        onPressed: () => Navigator.pushNamed(
-                          context,
-                          '/password_reset',
-                        ),
-                        child: const Text('Забыли пароль?'),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          TextButton(
+                            onPressed: () =>
+                                Navigator.pushNamed(context, '/register'),
+                            child: const Text('Регистрация'),
+                          ),
+                          TextButton(
+                            onPressed: () =>
+                                Navigator.pushNamed(context, '/password_reset'),
+                            child: const Text('Забыли пароль?'),
+                          ),
+                        ],
                       ),
                     ],
                   ),

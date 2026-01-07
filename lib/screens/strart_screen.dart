@@ -27,7 +27,7 @@ class StartScreen extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Chip(
-                      label: const Text('Информатика'),
+                      label: const Text('Цифровой класс'),
                       backgroundColor: Colors.white.withOpacity(0.14),
                       labelStyle: const TextStyle(
                         color: Colors.white,
@@ -41,31 +41,34 @@ class StartScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'Практика, теория и экзамены в одном приложении. Подготовьтесь к урокам информатики уверенно и с интересом.',
+                      'Практика и теория в одном приложении для учителей и учеников. Учитесь и преподавайте уверенно.',
                       style: theme.textTheme.bodyLarge?.copyWith(color: Colors.white70),
                     ),
                     const SizedBox(height: 20),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: ElevatedButton(
-                            onPressed: () => Navigator.pushNamed(context, '/login'),
-                            child: const Text('Войти'),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: OutlinedButton(
-                            onPressed: () => Navigator.pushNamed(context, '/registration'),
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: Colors.white,
-                              side: const BorderSide(color: Colors.white70),
-                              padding: const EdgeInsets.symmetric(vertical: 14),
-                            ),
-                            child: const Text('Регистрация'),
-                          ),
-                        ),
-                      ],
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: () => Navigator.pushNamed(context, '/login'),
+                        child: const Text('Войти'),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton(
+                        onPressed: () =>
+                            Navigator.pushNamed(context, '/register'),
+                        child: const Text('Регистрация'),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: TextButton(
+                        onPressed: () =>
+                            Navigator.pushNamed(context, '/password_reset'),
+                        child: const Text('Сбросить пароль'),
+                      ),
                     ),
                   ],
                 ),
@@ -83,7 +86,7 @@ class StartScreen extends StatelessWidget {
                   _StartFeatureCard(
                     icon: Icons.menu_book_rounded,
                     title: 'Теория',
-                    description: 'Конспекты и материалы для уроков информатики.',
+                    description: 'Конспекты и материалы для уроков и занятий.',
                   ),
                   _StartFeatureCard(
                     icon: Icons.code_rounded,
@@ -92,8 +95,9 @@ class StartScreen extends StatelessWidget {
                   ),
                   _StartFeatureCard(
                     icon: Icons.task_rounded,
-                    title: 'Экзамен',
-                    description: 'Создавайте или проходите экзамены с таймером.',
+                    title: 'Контрольные',
+                    description:
+                        'Создавайте или проходите контрольные работы и проверки.',
                   ),
                   _StartFeatureCard(
                     icon: Icons.people_alt_rounded,

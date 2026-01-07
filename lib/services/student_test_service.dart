@@ -8,39 +8,18 @@ class StudentTestService {
 
   StudentTestService({required this.baseUrl});
 
-  /// Ученик отправляет результаты прохождения теста
-  /// [testId] - ID теста
-  /// [answers] - список ответов в формате:
-  ///   [
-  ///     {
-  ///       "question_id": 1,
-  ///       "chosen_options": ["A", "B"],  // для multiple_choice
-  ///       "text_input": "Мой ответ"      // для text_input
-  ///     },
-  ///     ...
-  ///   ]
-  ///
-  /// Пример использования:
-  ///   submitTest(5, [
-  ///     {
-  ///       "question_id": 10,
-  ///       "chosen_options": ["1", "3"],
-  ///     },
-  ///     {
-  ///       "question_id": 11,
-  ///       "text_input": "Hello!"
-  ///     }
-  ///   ]);
-  Future<Map<String, dynamic>> submitTest(
-      int testId, List<Map<String, dynamic>> answers) async {
+  /// Ученик отправляет результаты прохождения задания
+  /// [assignmentId] - ID задания
+  /// [answers] - карта ответов: { "q1": "A", "q2": ["x"], "q3": "text" }
+  Future<Map<String, dynamic>> submitAssignment(
+      int assignmentId, Map<String, dynamic> answers) async {
     final token = await AuthService.getAccessToken();
     if (token == null) {
       throw Exception("Unauthorized: no access token");
     }
 
-    final url = Uri.parse('$baseUrl/student/submit-test');
+    final url = Uri.parse('$baseUrl/student/assignments/$assignmentId/submit');
     final body = json.encode({
-      "test_id": testId,
       "answers": answers,
     });
 
@@ -54,11 +33,11 @@ class StudentTestService {
     );
 
     if (response.statusCode == 200 || response.statusCode == 201) {
-      // При успехе бэкенд возвращает объект результата (StudentTestResultOut)
+      // При успехе бэкенд возвращает объект результата
       return jsonDecode(response.body) as Map<String, dynamic>;
     } else {
       throw Exception(
-          "Failed to submit test. Status code: ${response.statusCode}");
+          "Failed to submit assignment. Status code: ${response.statusCode}");
     }
   }
 }

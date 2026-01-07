@@ -7,35 +7,51 @@ class TestModel {
   final String title;
   final String? description;
   final List<QuestionModel> questions;
-
-  /// Новые поля (если нужно хранить класс и предмет)
-  final int? grade;
+  final int? classId;
   final String? subject;
+  final int? topicId;
+  final String? type;
+  final int? maxAttempts;
+  final bool? published;
+  final int? attemptsUsed;
+  final int? attemptsLeft;
+  final int? lastGrade;
 
   TestModel({
     required this.id,
     required this.title,
     this.description,
     required this.questions,
-    this.grade,
+    this.classId,
     this.subject,
+    this.topicId,
+    this.type,
+    this.maxAttempts,
+    this.published,
+    this.attemptsUsed,
+    this.attemptsLeft,
+    this.lastGrade,
   });
 
   factory TestModel.fromJson(Map<String, dynamic> json) {
-    // Безопасно достаём список вопросов
-    final questionsJson = json['questions'] as List<dynamic>? ?? [];
-
     return TestModel(
-      id: json['id'] as int,
-      title: json['title'] as String,
+      id: json['id'] as int? ?? 0,
+      title: json['title'] as String? ?? '',
       description: json['description'] as String?,
-      questions: questionsJson
+      questions: (json['questions'] as List<dynamic>? ?? [])
           .map((q) => QuestionModel.fromJson(q as Map<String, dynamic>))
           .toList(),
-
-      // Если на бэкенде есть поля 'grade' и 'subject'
-      grade: json['grade'] as int?,
+      classId: json['class_id'] as int? ?? json['classId'] as int?,
       subject: json['subject'] as String?,
+      topicId: json['topic_id'] as int? ?? json['topicId'] as int?,
+      type: json['type'] as String?,
+      maxAttempts: json['max_attempts'] as int? ?? json['maxAttempts'] as int?,
+      published: json['published'] as bool?,
+      attemptsUsed:
+          json['attempts_used'] as int? ?? json['attemptsUsed'] as int?,
+      attemptsLeft:
+          json['attempts_left'] as int? ?? json['attemptsLeft'] as int?,
+      lastGrade: json['last_grade'] as int? ?? json['lastGrade'] as int?,
     );
   }
 
@@ -46,9 +62,12 @@ class TestModel {
       'description': description,
       'questions': questions.map((q) => q.toJson()).toList(),
 
-      // Если нужно отправлять grade/subject
-      'grade': grade,
+      'class_id': classId,
       'subject': subject,
+      'topic_id': topicId,
+      'type': type,
+      'max_attempts': maxAttempts,
+      'published': published,
     };
   }
 }

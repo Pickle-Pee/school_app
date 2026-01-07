@@ -27,7 +27,10 @@ class _QuestionsScreenState extends State<QuestionsScreen> {
 
   void _fetchTest() {
     setState(() {
-      _futureTest = _testsService.getTestById(widget.testId);
+      _futureTest = _testsService.getAssignmentById(
+        widget.testId,
+        isTeacher: true,
+      );
     });
   }
 
@@ -65,7 +68,7 @@ class _QuestionsScreenState extends State<QuestionsScreen> {
                     SizedBox(width: 12),
                     Expanded(
                       child: Text(
-                        'Вопросы теста',
+                        'Вопросы работы',
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: 22,
@@ -97,7 +100,7 @@ class _QuestionsScreenState extends State<QuestionsScreen> {
 
                       final test = snapshot.data;
                       if (test == null) {
-                        return const Center(child: Text('Тест не найден'));
+                        return const Center(child: Text('Работа не найдена'));
                       }
 
                       final questions = test.questions;
@@ -112,8 +115,8 @@ class _QuestionsScreenState extends State<QuestionsScreen> {
                           final question = questions[index];
                           return _QuestionCard(
                             index: index,
-                            questionText: question.questionText,
-                            type: question.questionType,
+                            questionText: question.prompt,
+                            type: question.type,
                             onEdit: () async {
                               final updated = await Navigator.push(
                                 context,
@@ -131,7 +134,10 @@ class _QuestionsScreenState extends State<QuestionsScreen> {
                             onDelete: () async {
                               try {
                                 await _testsService.deleteQuestion(
-                                    test.id, question.id);
+                                  test.id,
+                                  question.id,
+                                  assignment: test,
+                                );
                                 _fetchTest();
                               } catch (e) {
                                 ScaffoldMessenger.of(context).showSnackBar(
@@ -251,9 +257,9 @@ class _QuestionCard extends StatelessWidget {
 
   String _typeLabel(String type) {
     switch (type) {
-      case 'multiple_choice':
+      case 'checkbox':
         return 'Множественный выбор';
-      case 'single_choice':
+      case 'select':
         return 'Одиночный выбор';
       default:
         return 'Свободный ответ';
@@ -278,7 +284,7 @@ class _EmptyQuestions extends StatelessWidget {
                 color: AppTheme.primaryColor, size: 64),
             const SizedBox(height: 12),
             Text(
-              'Добавьте вопросы, чтобы ученики могли приступать к тесту.',
+              'Добавьте вопросы, чтобы ученики могли приступать к работе.',
               style: Theme.of(context).textTheme.headlineSmall,
               textAlign: TextAlign.center,
             ),
