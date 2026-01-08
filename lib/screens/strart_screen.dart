@@ -41,7 +41,7 @@ class StartScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'Практика, теория и экзамены в одном приложении. Подготовьтесь к урокам информатики уверенно и с интересом.',
+                      'Практика, теория и экзамены в одном приложении. Подготовьтесь к урокам уверенно и с интересом.',
                       style: theme.textTheme.bodyLarge?.copyWith(color: Colors.white70),
                     ),
                     const SizedBox(height: 20),

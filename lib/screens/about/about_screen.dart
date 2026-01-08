@@ -120,12 +120,12 @@ class _AboutScreenState extends State<AboutScreen> {
                     ),
                     SizedBox(height: 8),
                     Text(
-                      'Разработчик: Александр Парамонов',
+                      'Разработчик: Артем Белоусов',
                       style: TextStyle(fontSize: 15),
                     ),
                     SizedBox(height: 6),
                     Text(
-                      'Все права защищены © 2024 - 2025',
+                      'Все права защищены © 2025 - 2026',
                       style: TextStyle(fontSize: 15),
                     ),
                   ],

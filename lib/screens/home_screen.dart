@@ -32,6 +32,34 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
+  void _goTheory(BuildContext context) {
+    if (_isTeacher) {
+      Navigator.pushNamed(context, '/teacher/materials');
+    } else {
+      Navigator.pushNamed(context, '/student/materials');
+    }
+  }
+
+  void _goPractice(BuildContext context) {
+    if (_isTeacher) {
+      Navigator.pushNamed(context, '/teacher/tests/create');
+    } else {
+      Navigator.pushNamed(context, '/student/tests');
+    }
+  }
+
+  void _goStudents(BuildContext context) {
+    Navigator.pushNamed(context, '/teacher/students');
+  }
+
+  void _goResults(BuildContext context) {
+    Navigator.pushNamed(context, '/teacher/results');
+  }
+
+  void _goGrades(BuildContext context) {
+    Navigator.pushNamed(context, '/student/grades');
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -74,39 +102,32 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             _MenuTile(
               icon: Icons.book_rounded,
-              title: 'Теория',
-              onTap: () => Navigator.pushNamed(context, '/theory'),
+              title: 'Материалы',
+              onTap: () => _goTheory(context),
             ),
             _MenuTile(
               icon: Icons.code_rounded,
-              title: 'Задачи и упражнения',
-              onTap: () => Navigator.pushNamed(context, '/exercises'),
+              title: 'Тесты / Практика',
+              onTap: () => _goPractice(context),
             ),
-            _MenuTile(
-              icon: Icons.school_rounded,
-              title: 'Экзамен',
-              onTap: () => Navigator.pushNamed(context, '/exams'),
-            ),
-            if (_isTeacher)
+            if (_isTeacher) ...[
               _MenuTile(
                 icon: Icons.groups_rounded,
                 title: 'Ученики',
-                onTap: () => Navigator.pushNamed(context, '/students'),
+                onTap: () => _goStudents(context),
               ),
-            _MenuTile(
-              icon: Icons.info_outline,
-              title: 'О приложении',
-              onTap: () => Navigator.pushNamed(context, '/about'),
-            ),
-            _MenuTile(
-              icon: Icons.logout,
-              title: 'Выход',
-              onTap: () async {
-                await AuthService.logout();
-                Navigator.pushNamedAndRemoveUntil(
-                    context, '/login', (route) => false);
-              },
-            ),
+              _MenuTile(
+                icon: Icons.bar_chart_rounded,
+                title: 'Результаты',
+                onTap: () => _goResults(context),
+              ),
+            ] else ...[
+              _MenuTile(
+                icon: Icons.star_rounded,
+                title: 'Мои оценки',
+                onTap: () => _goGrades(context),
+              ),
+            ],
           ],
         ),
       ),
@@ -129,28 +150,31 @@ class _HomeScreenState extends State<HomeScreen> {
                 children: [
                   _ActionCard(
                     icon: Icons.menu_book_rounded,
-                    title: 'Теория',
-                    description: 'Конспекты, схемы и цифровые ресурсы.',
-                    onTap: () => Navigator.pushNamed(context, '/theory'),
+                    title: 'Материалы',
+                    description: 'Конспекты и файлы учителя.',
+                    onTap: () => _goTheory(context),
                   ),
                   _ActionCard(
                     icon: Icons.code_rounded,
-                    title: 'Практика',
-                    description: 'Алгоритмы, задачи и подготовка к ОГЭ/ЕГЭ.',
-                    onTap: () => Navigator.pushNamed(context, '/exercises'),
-                  ),
-                  _ActionCard(
-                    icon: Icons.school_rounded,
-                    title: 'Экзамены',
-                    description: 'Создавайте и проходите контрольные работы.',
-                    onTap: () => Navigator.pushNamed(context, '/exams'),
+                    title: _isTeacher ? 'Создать тест' : 'Тесты',
+                    description: _isTeacher
+                        ? 'Создавайте задания и вопросы.'
+                        : 'Проходите тесты и практикуйтесь.',
+                    onTap: () => _goPractice(context),
                   ),
                   if (_isTeacher)
                     _ActionCard(
                       icon: Icons.groups_2_rounded,
                       title: 'Ученики',
-                      description: 'Отслеживайте прогресс и приглашайте в класс.',
-                      onTap: () => Navigator.pushNamed(context, '/students'),
+                      description: 'Списки и классы.',
+                      onTap: () => _goStudents(context),
+                    )
+                  else
+                    _ActionCard(
+                      icon: Icons.star_rounded,
+                      title: 'Оценки',
+                      description: 'Смотрите средний балл и историю.',
+                      onTap: () => _goGrades(context),
                     ),
                 ],
               ),
@@ -167,14 +191,16 @@ class _HomeScreenState extends State<HomeScreen> {
                   if (subjects.isEmpty) {
                     return Container(
                       width: double.infinity,
-                      padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+                      padding: const EdgeInsets.symmetric(
+                          vertical: 24, horizontal: 16),
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(16),
                       ),
                       child: Row(
                         children: const [
-                          Icon(Icons.hourglass_empty, color: AppTheme.primaryColor),
+                          Icon(Icons.hourglass_empty,
+                              color: AppTheme.primaryColor),
                           SizedBox(width: 12),
                           Expanded(
                             child: Text(
@@ -194,7 +220,8 @@ class _HomeScreenState extends State<HomeScreen> {
                         .map(
                           (subject) => Chip(
                             label: Text(subject),
-                            avatar: const Icon(Icons.memory, size: 18, color: AppTheme.primaryColor),
+                            avatar: const Icon(Icons.memory,
+                                size: 18, color: AppTheme.primaryColor),
                           ),
                         )
                         .toList(),
@@ -344,7 +371,8 @@ class _HeroBanner extends StatelessWidget {
           Row(
             children: [
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 decoration: BoxDecoration(
                   color: Colors.white.withOpacity(0.16),
                   borderRadius: BorderRadius.circular(14),
@@ -353,13 +381,16 @@ class _HeroBanner extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Icon(
-                      isTeacher ? Icons.cast_for_education : Icons.laptop_chromebook,
+                      isTeacher
+                          ? Icons.cast_for_education
+                          : Icons.laptop_chromebook,
                       color: Colors.white,
                     ),
                     const SizedBox(width: 8),
                     Text(
                       isTeacher ? 'Режим преподавателя' : 'Режим ученика',
-                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+                      style: const TextStyle(
+                          color: Colors.white, fontWeight: FontWeight.w700),
                     ),
                   ],
                 ),
@@ -374,27 +405,36 @@ class _HeroBanner extends StatelessWidget {
           const SizedBox(height: 6),
           Text(
             'Планируйте уроки, закрепляйте алгоритмы и готовьтесь к экзамену. Все материалы в одном месте.',
-            style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: Colors.white70),
+            style: Theme.of(context)
+                .textTheme
+                .bodyLarge
+                ?.copyWith(color: Colors.white70),
           ),
           const SizedBox(height: 14),
           Row(
             children: [
               ElevatedButton(
-                onPressed: () => Navigator.pushNamed(context, '/theory'),
+                onPressed: () {
+                  Navigator.pushNamed(context,
+                      isTeacher ? '/teacher/materials' : '/student/tests');
+                },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.white,
                   foregroundColor: AppTheme.primaryColor,
                 ),
-                child: const Text('Изучить теорию'),
+                child: Text(isTeacher ? 'Материалы' : 'Тесты'),
               ),
               const SizedBox(width: 10),
               OutlinedButton(
-                onPressed: () => Navigator.pushNamed(context, '/exercises'),
+                onPressed: () {
+                  Navigator.pushNamed(context,
+                      isTeacher ? '/teacher/tests/create' : '/student/tests');
+                },
                 style: OutlinedButton.styleFrom(
                   foregroundColor: Colors.white,
                   side: const BorderSide(color: Colors.white70),
                 ),
-                child: const Text('Практиковаться'),
+                child: Text(isTeacher ? 'Создать тест' : 'Практиковаться'),
               )
             ],
           )
@@ -431,7 +471,8 @@ class _FocusCard extends StatelessWidget {
                 color: AppTheme.accentColor.withOpacity(0.14),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: const Icon(Icons.data_usage_rounded, color: AppTheme.primaryColor),
+              child: const Icon(Icons.data_usage_rounded,
+                  color: AppTheme.primaryColor),
             ),
             const SizedBox(width: 12),
             Expanded(

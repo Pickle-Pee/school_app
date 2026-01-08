@@ -1,6 +1,6 @@
 class Config {
   // Базовый URL для API
-  static const String baseUrl = "http://89.23.112.33:8000";
+  static const String baseUrl = "http://localhost:8000";
 
   // Тайм-аут для запросов (в миллисекундах)
   static const int requestTimeout = 30000;

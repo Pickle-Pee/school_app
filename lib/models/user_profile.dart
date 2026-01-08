@@ -1,4 +1,3 @@
-// models/user_profile.dart
 class UserProfile {
   final String email;
   final String firstName;

@@ -27,6 +27,11 @@ class _TeacherGradesScreenState extends State<TeacherGradesScreen>
   Future<List<Map<String, dynamic>>>? _summaryFuture;
   Future<List<Map<String, dynamic>>>? _topicFuture;
 
+  final TextEditingController _pageController =
+      TextEditingController(text: '1');
+  final TextEditingController _pageSizeController =
+      TextEditingController(text: '20');
+
   @override
   void initState() {
     super.initState();
@@ -39,6 +44,8 @@ class _TeacherGradesScreenState extends State<TeacherGradesScreen>
     _tabController.dispose();
     _subjectController.dispose();
     _topicIdController.dispose();
+    _pageController.dispose();
+    _pageSizeController.dispose();
     super.dispose();
   }
 
@@ -95,6 +102,8 @@ class _TeacherGradesScreenState extends State<TeacherGradesScreen>
             onReload: _loadSummary,
           ),
           _ByTopicTab(
+            pageController: _pageController,
+            pageSizeController: _pageSizeController,
             future: _topicFuture,
             topicIdController: _topicIdController,
             assignmentType: _assignmentType,
@@ -104,7 +113,8 @@ class _TeacherGradesScreenState extends State<TeacherGradesScreen>
             onPageChanged: (value) => setState(() => _page = value),
             onPageSizeChanged: (value) => setState(() => _pageSize = value),
             onLoad: _loadByTopic,
-            onReset: ({required int studentId, required int assignmentId}) async {
+            onReset: (
+                {required int studentId, required int assignmentId}) async {
               await _service.resetAttempts(
                 studentId: studentId,
                 assignmentId: assignmentId,
@@ -160,8 +170,7 @@ class _SummaryTab extends StatelessWidget {
                 : FutureBuilder<List<Map<String, dynamic>>>(
                     future: future,
                     builder: (context, snapshot) {
-                      if (snapshot.connectionState ==
-                          ConnectionState.waiting) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
                         return const Center(
                           child: CircularProgressIndicator(),
                         );
@@ -183,8 +192,7 @@ class _SummaryTab extends StatelessWidget {
                         itemBuilder: (context, index) {
                           final item = data[index];
                           return _GradeCard(
-                            title: item['student_name']?.toString() ??
-                                'Ученик',
+                            title: item['student_name']?.toString() ?? 'Ученик',
                             subtitle: 'Средний балл: '
                                 '${item['average'] ?? item['avg'] ?? '-'}',
                             details: item,
@@ -212,6 +220,8 @@ class _ByTopicTab extends StatelessWidget {
     required this.onPageSizeChanged,
     required this.onLoad,
     required this.onReset,
+    required this.pageController,
+    required this.pageSizeController,
   });
 
   final Future<List<Map<String, dynamic>>>? future;
@@ -223,10 +233,15 @@ class _ByTopicTab extends StatelessWidget {
   final ValueChanged<int> onPageChanged;
   final ValueChanged<int> onPageSizeChanged;
   final VoidCallback onLoad;
+  final TextEditingController pageController;
+  final TextEditingController pageSizeController;
   final Future<void> Function({
     required int studentId,
     required int assignmentId,
   }) onReset;
+
+  static const types = ['practice', 'homework'];
+  String get safeType => types.contains(assignmentType) ? assignmentType : 'practice';
 
   @override
   Widget build(BuildContext context) {
@@ -244,15 +259,13 @@ class _ByTopicTab extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           DropdownButtonFormField<String>(
-            value: assignmentType,
+            value: safeType,
             items: const [
               DropdownMenuItem(value: 'practice', child: Text('Практика')),
               DropdownMenuItem(value: 'homework', child: Text('ДЗ')),
             ],
             onChanged: (value) {
-              if (value != null) {
-                onTypeChanged(value);
-              }
+              if (value != null) onTypeChanged(value);
             },
             decoration: const InputDecoration(
               labelText: 'Тип работы',
@@ -264,13 +277,12 @@ class _ByTopicTab extends StatelessWidget {
             children: [
               Expanded(
                 child: TextField(
-                  decoration: const InputDecoration(
-                    labelText: 'Страница',
-                  ),
+                  controller: pageController,
+                  decoration: const InputDecoration(labelText: 'Страница'),
                   keyboardType: TextInputType.number,
                   onChanged: (value) {
                     final parsed = int.tryParse(value);
-                    if (parsed != null) {
+                    if (parsed != null && parsed >= 1) {
                       onPageChanged(parsed);
                     }
                   },
@@ -279,13 +291,12 @@ class _ByTopicTab extends StatelessWidget {
               const SizedBox(width: 12),
               Expanded(
                 child: TextField(
-                  decoration: const InputDecoration(
-                    labelText: 'Размер',
-                  ),
+                  controller: pageSizeController,
+                  decoration: const InputDecoration(labelText: 'Размер'),
                   keyboardType: TextInputType.number,
                   onChanged: (value) {
                     final parsed = int.tryParse(value);
-                    if (parsed != null) {
+                    if (parsed != null && parsed >= 1 && parsed <= 100) {
                       onPageSizeChanged(parsed);
                     }
                   },
@@ -308,8 +319,7 @@ class _ByTopicTab extends StatelessWidget {
                 : FutureBuilder<List<Map<String, dynamic>>>(
                     future: future,
                     builder: (context, snapshot) {
-                      if (snapshot.connectionState ==
-                          ConnectionState.waiting) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
                         return const Center(
                           child: CircularProgressIndicator(),
                         );

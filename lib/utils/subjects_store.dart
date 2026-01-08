@@ -1,4 +1,6 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
+import 'package:http/src/response.dart';
 import 'package:mobx/mobx.dart';
 import 'package:school_test_app/config.dart';
 import 'package:school_test_app/utils/interceptor.dart';
@@ -14,10 +16,11 @@ abstract class _SubjectsStore with Store {
   @action
   Future<void> fetchSubjects() async {
     try {
-      final response = await ApiInterceptor.get('${Config.baseUrl}/api/subjects');
+      final response =
+          await ApiInterceptor.get('${Config.baseUrl}/api/subjects');
 
       if (response.statusCode == 200 && response.body.isNotEmpty) {
-        final data = json.decode(response.body);
+        final data = decodeJson(response);
         if (data is List) {
           subjects = ObservableList.of(data.cast<String>());
         } else {
@@ -29,6 +32,11 @@ abstract class _SubjectsStore with Store {
     } catch (e) {
       // Обработать исключения запроса или парсинга JSON
     }
+  }
+
+  static dynamic decodeJson(Response response) {
+    final body = kIsWeb ? response.body : utf8.decode(response.bodyBytes);
+    return json.decode(body);
   }
 }
 

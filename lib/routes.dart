@@ -1,68 +1,46 @@
 import 'package:flutter/material.dart';
-import 'package:school_test_app/features/student/student_shell.dart';
-import 'package:school_test_app/features/teacher/teacher_shell.dart';
 import 'package:school_test_app/screens/about/about_screen.dart';
 import 'package:school_test_app/screens/auth/login_screen.dart';
+import 'package:school_test_app/screens/auth/password_reset_screen.dart';
 import 'package:school_test_app/screens/auth/registration_screen.dart';
-import 'package:school_test_app/screens/exams/teacher/create_exam_screen.dart';
-import 'package:school_test_app/screens/exams/teacher/exams_screen.dart';
 import 'package:school_test_app/screens/home_screen.dart';
-import 'package:school_test_app/screens/practice/teacher/tests_screen.dart';
-import 'package:school_test_app/screens/profile/edit_profile_screen.dart';
-import 'package:school_test_app/screens/profile/performance_screen.dart';
 import 'package:school_test_app/screens/profile/profile_screen.dart';
-import 'package:school_test_app/screens/profile/test_history_screen.dart';
-import 'package:school_test_app/screens/register/student_register.dart';
-import 'package:school_test_app/screens/register/teacher_register.dart';
 import 'package:school_test_app/screens/strart_screen.dart';
-import 'package:school_test_app/screens/students/student_list_screen.dart';
-import 'package:school_test_app/screens/theory/materials_list_screen.dart';
-import 'package:school_test_app/services/auth_service.dart';
+import 'package:school_test_app/screens/student/grades/student_grades_screen.dart';
+import 'package:school_test_app/screens/student/materials/student_material_detail_screen.dart';
+import 'package:school_test_app/screens/student/materials/student_material_screen.dart';
+import 'package:school_test_app/screens/student/tests/student_assignment_detail_screen.dart';
+import 'package:school_test_app/screens/student/tests/student_assignments_screen.dart';
+import 'package:school_test_app/screens/student/tests/student_test_pass_screen.dart';
+import 'package:school_test_app/screens/teacher/materials/teacher_add_material_screen.dart';
+import 'package:school_test_app/screens/teacher/materials/teacher_material_detail_screen.dart';
+import 'package:school_test_app/screens/teacher/materials/teacher_material_screen.dart';
+import 'package:school_test_app/screens/teacher/results/teacher_result_screen.dart';
+import 'package:school_test_app/screens/teacher/students/teacher_student_screen.dart';
+import 'package:school_test_app/screens/teacher/teacher_shell.dart';
+import 'package:school_test_app/screens/teacher/tests/teacher_assignment_detail_screen.dart';
+import 'package:school_test_app/screens/teacher/tests/teacher_create_assignment_screen.dart';
 
 Map<String, WidgetBuilder> get appRoutes => {
-      '/': (_) => StartScreen(),
+      '/': (_) => const StartScreen(),
       '/login': (_) => const LoginScreen(),
-      '/registration': (_) => RegistrationScreen(),
+      '/register': (_) => const RegistrationScreen(),
+      '/password_reset': (_) => PasswordResetScreen(),
       '/home': (_) => const HomeScreen(),
-      '/profile': (_) => const ProfileScreen(),
-      '/edit_profile': (_) => const EditProfileScreen(),
-      '/test_history': (_) => const TestHistoryScreen(),
-      '/performance': (_) => const PerformanceScreen(),
-      '/register/teacher': (_) => const TeacherRegistrationScreen(),
-      '/register/student': (_) => const StudentRegistrationScreen(),
-      '/exercises': (_) => const TestsScreen(),
-      '/theory': (_) => const MaterialsListScreen(),
-      '/students': (_) => const StudentsListScreen(),
-      '/exams': (_) => const ExamsScreen(),
-      '/create_exam': (_) => const CreateExamScreen(),
-      '/about': (_) => const AboutScreen(),
-      '/shell': (_) => const RoleGate(),
       '/teacher': (_) => const TeacherShell(),
-      '/student': (_) => const StudentShell(),
+      '/teacher/materials': (_) => const TeacherMaterialsScreen(),
+      '/teacher/materials/add': (_) => const TeacherAddMaterialScreen(),
+      '/teacher/tests/create': (_) => const TeacherCreateAssignmentScreen(),
+      '/teacher/tests/detail': (_) => const TeacherAssignmentDetailScreen(),
+      '/teacher/students': (_) => const TeacherStudentsScreen(),
+      '/teacher/results': (_) => const TeacherResultsScreen(),
+      '/teacher/materials/detail': (_) => const TeacherMaterialDetailScreen(),
+      '/student/tests': (_) => const StudentAssignmentsScreen(),
+      '/student/tests/detail': (_) => const StudentAssignmentDetailScreen(),
+      '/student/tests/pass': (_) => const StudentTestPassScreen(),
+      '/student/materials/detail': (_) => const StudentMaterialDetailScreen(),
+      '/student/materials': (_) => const StudentMaterialsScreen(),
+      '/student/grades': (_) => const StudentGradesScreen(),
+      '/profile': (_) => const ProfileScreen(),
+      '/about': (_) => const AboutScreen(),
     };
-
-class RoleGate extends StatelessWidget {
-  const RoleGate({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return FutureBuilder<String?>(
-      future: AuthService.getUserType(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Scaffold(
-            body: Center(child: CircularProgressIndicator()),
-          );
-        }
-        final role = snapshot.data;
-        if (role == 'teacher') {
-          return const TeacherShell();
-        }
-        if (role == 'student') {
-          return const StudentShell();
-        }
-        return const LoginScreen();
-      },
-    );
-  }
-}

@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:school_test_app/utils/session_manager.dart';
 import 'package:school_test_app/config.dart';
@@ -27,7 +28,7 @@ class AuthService {
     );
 
     if (response.statusCode == 200) {
-      final data = json.decode(response.body);
+      final data = decodeJson(response);
       final accessToken = data["access_token"];
       final refreshToken = data["refresh_token"] ?? '';
       await SessionManager.saveTokens(accessToken, refreshToken);
@@ -87,7 +88,7 @@ class AuthService {
     );
 
     if (response.statusCode == 200) {
-      final data = json.decode(response.body);
+      final data = decodeJson(response);
       return data["role"] as String?; // "teacher" или "student"
     } else {
       // не смогли получить /me — значит неизвестно
@@ -109,7 +110,7 @@ class AuthService {
       );
 
       if (response.statusCode == 200) {
-        final data = json.decode(response.body);
+        final data = decodeJson(response);
         await SessionManager.saveTokens(
           data["access_token"],
           data["refresh_token"],
@@ -159,5 +160,10 @@ class AuthService {
   /// Получить текущий access_token из хранилища
   static Future<String?> getAccessToken() async {
     return SessionManager.getAccessToken();
+  }
+
+  static dynamic decodeJson(http.Response resp) {
+    final body = kIsWeb ? resp.body : utf8.decode(resp.bodyBytes);
+    return json.decode(body);
   }
 }

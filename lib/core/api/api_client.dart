@@ -4,6 +4,7 @@ import 'package:school_test_app/core/api/auth_interceptor.dart';
 import 'package:school_test_app/core/storage/token_storage.dart';
 
 class ApiClient {
+
   ApiClient({TokenStorage? tokenStorage})
       : _dio = Dio(
           BaseOptions(
@@ -15,7 +16,8 @@ class ApiClient {
             },
           ),
         ) {
-    _dio.interceptors.add(AuthInterceptor(tokenStorage ?? const TokenStorage()));
+    _dio.interceptors
+        .add(AuthInterceptor(tokenStorage ?? const TokenStorage()));
   }
 
   final Dio _dio;
