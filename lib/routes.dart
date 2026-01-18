@@ -5,6 +5,7 @@ import 'package:school_test_app/screens/auth/password_reset_screen.dart';
 import 'package:school_test_app/screens/auth/registration_screen.dart';
 import 'package:school_test_app/screens/home_screen.dart';
 import 'package:school_test_app/screens/profile/profile_screen.dart';
+import 'package:school_test_app/screens/register/student_register.dart';
 import 'package:school_test_app/screens/strart_screen.dart';
 import 'package:school_test_app/screens/student/grades/student_grades_screen.dart';
 import 'package:school_test_app/screens/student/materials/student_material_detail_screen.dart';
@@ -43,4 +44,6 @@ Map<String, WidgetBuilder> get appRoutes => {
       '/student/grades': (_) => const StudentGradesScreen(),
       '/profile': (_) => const ProfileScreen(),
       '/about': (_) => const AboutScreen(),
+      '/student/register': (_) => const StudentRegisterScreen(),
+
     };

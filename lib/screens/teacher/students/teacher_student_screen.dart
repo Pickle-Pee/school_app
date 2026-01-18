@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:school_test_app/services/teacher_api_service.dart';
 import 'package:school_test_app/theme/app_theme.dart';
+import 'package:school_test_app/widgets/status_cards.dart';
 
 class TeacherStudentsScreen extends StatefulWidget {
   const TeacherStudentsScreen({Key? key}) : super(key: key);
@@ -91,6 +92,7 @@ class _TeacherStudentsScreenState extends State<TeacherStudentsScreen> {
     final theme = Theme.of(context);
 
     return SafeArea(
+      
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -203,10 +205,9 @@ class _TeacherStudentsScreenState extends State<TeacherStudentsScreen> {
             if (_loading)
               const Center(child: CircularProgressIndicator())
             else if (_error != null)
-              _ErrorCard(error: _error!, onRetry: _init)
+              AppErrorCard(error: _error!, onRetry: _init)
             else if (_students.isEmpty)
-              const _InfoCard(
-                  icon: Icons.inbox_rounded, text: "Ученики не найдены")
+              const AppInfoCard(icon: Icons.inbox_rounded, text: "Ученики не найдены")
             else ...[
               Text("Список", style: theme.textTheme.headlineSmall),
               const SizedBox(height: 10),
@@ -225,7 +226,7 @@ class _TeacherStudentsScreenState extends State<TeacherStudentsScreen> {
                     ),
                     title: Text(m["full_name"]?.toString() ?? "Ученик",
                         style: const TextStyle(fontWeight: FontWeight.w700)),
-                    subtitle: Text("avg: ${m["avg_grade"]}"),
+                    subtitle: Text("Средний балл: ${m["avg_grade"]}"),
                     trailing: const Icon(Icons.chevron_right),
                     onTap: () {
                       // можно вести в результаты (пока без фильтра по student_id)
@@ -233,6 +234,7 @@ class _TeacherStudentsScreenState extends State<TeacherStudentsScreen> {
                           arguments: {
                             "class": _selectedClassMap,
                             "subject": _subject,
+                            "compact": true,
                           });
                     },
                   ),
@@ -246,57 +248,4 @@ class _TeacherStudentsScreenState extends State<TeacherStudentsScreen> {
   }
 }
 
-class _InfoCard extends StatelessWidget {
-  final IconData icon;
-  final String text;
-  const _InfoCard({required this.icon, required this.text});
 
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 14),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppTheme.primaryColor.withOpacity(0.10)),
-      ),
-      child: Row(
-        children: [
-          Icon(icon, color: AppTheme.primaryColor),
-          const SizedBox(width: 12),
-          Expanded(child: Text(text)),
-        ],
-      ),
-    );
-  }
-}
-
-class _ErrorCard extends StatelessWidget {
-  final String error;
-  final VoidCallback onRetry;
-  const _ErrorCard({required this.error, required this.onRetry});
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('Ошибка', style: TextStyle(fontWeight: FontWeight.w800)),
-            const SizedBox(height: 8),
-            Text(error),
-            const SizedBox(height: 12),
-            OutlinedButton.icon(
-              onPressed: onRetry,
-              icon: const Icon(Icons.refresh_rounded),
-              label: const Text('Повторить'),
-            )
-          ],
-        ),
-      ),
-    );
-  }
-}

@@ -7,7 +7,7 @@ class PasswordResetScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppTheme.background,
-      appBar: appHeader('Восстановление пароля'),
+      appBar: appHeader('Восстановление пароля', context: context),
       body: Padding(
         padding: const EdgeInsets.all(20.0),
         child: Column(

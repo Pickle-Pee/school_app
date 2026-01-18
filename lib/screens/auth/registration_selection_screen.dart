@@ -7,7 +7,7 @@ class RegistrationSelectionScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppTheme.background,
-      appBar: appHeader('Регистрация'),
+      appBar: appHeader('Регистрация', context: context, showBack: false),
       body: Center(
         child: Padding(
           padding: const EdgeInsets.all(20.0),

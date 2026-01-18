@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:school_test_app/theme/app_theme.dart';
+import 'package:school_test_app/widgets/app_navigator.dart';
 
 class AboutScreen extends StatefulWidget {
   const AboutScreen({Key? key}) : super(key: key);
@@ -31,9 +32,7 @@ class _AboutScreenState extends State<AboutScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppTheme.background,
-      appBar: AppBar(
-        title: const Text('О приложении'),
-      ),
+      appBar: appHeader("О приложении", context: context),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20.0),
         child: Column(

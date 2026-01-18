@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:school_test_app/services/student_api_service.dart';
 import 'package:school_test_app/theme/app_theme.dart';
+import 'package:school_test_app/widgets/app_navigator.dart';
+import 'package:school_test_app/widgets/status_cards.dart';
 
 class StudentGradesScreen extends StatefulWidget {
   const StudentGradesScreen({Key? key}) : super(key: key);
@@ -69,7 +71,7 @@ class _StudentGradesScreenState extends State<StudentGradesScreen> {
     final items = (_grades?["items"] as List?) ?? const [];
 
     return Scaffold(
-      appBar: AppBar(title: const Text("Оценки")),
+      appBar: appHeader("Оценки", context: context),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(16),
@@ -113,7 +115,7 @@ class _StudentGradesScreenState extends State<StudentGradesScreen> {
                 ),
               ),
               const SizedBox(height: 14),
-              if (_error != null) _ErrorCard(error: _error!, onRetry: _init),
+              if (_error != null) AppErrorCard(error: _error!, onRetry: _init),
               Card(
                 child: Padding(
                   padding: const EdgeInsets.all(14),
@@ -152,7 +154,7 @@ class _StudentGradesScreenState extends State<StudentGradesScreen> {
                           ),
                           const SizedBox(height: 10),
                           if (subjectNames.isEmpty)
-                            const _InfoCard(
+                            const AppInfoCard(
                               icon: Icons.inbox_rounded,
                               text: "Предметы не найдены",
                             )
@@ -192,8 +194,7 @@ class _StudentGradesScreenState extends State<StudentGradesScreen> {
               ),
               const SizedBox(height: 14),
               if (_loading)
-                const _InfoCard(
-                    icon: Icons.hourglass_empty, text: "Загружаем оценки…")
+                const AppLoadingCard(text: "Загружаем оценки…")
               else ...[
                 Card(
                   child: Padding(
@@ -234,8 +235,7 @@ class _StudentGradesScreenState extends State<StudentGradesScreen> {
                 Text("История", style: theme.textTheme.headlineSmall),
                 const SizedBox(height: 10),
                 if (items.isEmpty)
-                  const _InfoCard(
-                      icon: Icons.inbox_rounded, text: "Оценок пока нет")
+                  const AppEmptyCard(text: "Оценок пока нет")
                 else
                   ...items.map((it) {
                     final m = Map<String, dynamic>.from(it as Map);
@@ -283,63 +283,4 @@ class _StudentGradesScreenState extends State<StudentGradesScreen> {
   }
 }
 
-class _InfoCard extends StatelessWidget {
-  final IconData icon;
-  final String text;
-  const _InfoCard({required this.icon, required this.text});
 
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 14),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppTheme.primaryColor.withOpacity(0.10)),
-      ),
-      child: Row(
-        children: [
-          Icon(icon, color: AppTheme.primaryColor),
-          const SizedBox(width: 12),
-          Expanded(child: Text(text)),
-        ],
-      ),
-    );
-  }
-}
-
-class _ErrorCard extends StatelessWidget {
-  final String error;
-  final VoidCallback onRetry;
-  const _ErrorCard({required this.error, required this.onRetry});
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Row(
-              children: [
-                Icon(Icons.error_outline_rounded, color: Colors.redAccent),
-                SizedBox(width: 10),
-                Text("Ошибка", style: TextStyle(fontWeight: FontWeight.w800)),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Text(error),
-            const SizedBox(height: 12),
-            OutlinedButton.icon(
-              onPressed: onRetry,
-              icon: const Icon(Icons.refresh_rounded),
-              label: const Text("Повторить"),
-            )
-          ],
-        ),
-      ),
-    );
-  }
-}

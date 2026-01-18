@@ -12,6 +12,10 @@ import 'package:school_test_app/utils/session_manager.dart';
 /// GET  /assignments/{assignment_id}
 /// POST /assignments/{assignment_id}/submit
 /// GET  /grades?subject=...
+///
+/// (Регистрация ученика)
+/// GET  /class-groups                 (public)
+/// POST /auth/register/student        (public)
 class StudentApiService {
   static String _base() => Config.baseUrl;
 
@@ -27,8 +31,7 @@ class StudentApiService {
         .replace(queryParameters: qp.isEmpty ? null : qp);
   }
 
-  static Future<Map<String, String>> _authHeaders(
-      {bool jsonBody = false}) async {
+  static Future<Map<String, String>> _authHeaders({bool jsonBody = false}) async {
     final token = await SessionManager.getAccessToken();
     if (token == null || token.isEmpty) {
       throw Exception("Нет access_token. Сначала выполните логин.");
@@ -54,6 +57,49 @@ class StudentApiService {
     return Exception("HTTP ${resp.statusCode}: $decoded");
   }
 
+  // -------------------- PUBLIC (no auth) --------------------
+
+  /// GET /student/class-groups (для регистрации)
+  static Future<List<dynamic>> getClassGroups() async {
+    final resp = await http.get(_uri("/student/class-groups"));
+    if (resp.statusCode == 200) {
+      final decoded = _decode(resp);
+      if (decoded is List) return List<dynamic>.from(decoded);
+      return <dynamic>[];
+    }
+    throw _httpError(resp);
+  }
+
+  /// POST /auth/register/student (public)
+  static Future<Map<String, dynamic>> registerStudent({
+    required String fullName,
+    required String phone,
+    String? email,
+    required String password,
+    required int classGroupId,
+  }) async {
+    final resp = await http.post(
+      _uri("/auth/register/student"),
+      headers: {"Content-Type": "application/json"},
+      body: json.encode({
+        "full_name": fullName,
+        "phone": phone,
+        "email": (email != null && email.trim().isNotEmpty) ? email.trim() : null,
+        "password": password,
+        "class_group_id": classGroupId,
+      }),
+    );
+
+    if (resp.statusCode == 200 || resp.statusCode == 201) {
+      final decoded = _decode(resp);
+      if (decoded is Map) return Map<String, dynamic>.from(decoded);
+      return <String, dynamic>{};
+    }
+    throw _httpError(resp);
+  }
+
+  // -------------------- AUTH (student) --------------------
+
   /// GET /profile
   static Future<Map<String, dynamic>> getProfile() async {
     final resp = await http.get(
@@ -70,7 +116,7 @@ class StudentApiService {
   /// GET /subjects
   static Future<List<dynamic>> getSubjects() async {
     final resp = await http.get(
-      _uri("/subjects"),
+      _uri("/student/subjects"),
       headers: await _authHeaders(),
     );
 
@@ -83,7 +129,7 @@ class StudentApiService {
   /// GET /topics?subject=...
   static Future<List<dynamic>> getTopics({required String subject}) async {
     final resp = await http.get(
-      _uri("/topics", {"subject": subject}),
+      _uri("/student/topics", {"subject": subject}),
       headers: await _authHeaders(),
     );
 
@@ -99,7 +145,7 @@ class StudentApiService {
     required int topicId,
   }) async {
     final resp = await http.get(
-      _uri("/theory", {"subject": subject, "topic_id": topicId}),
+      _uri("/student/theory", {"subject": subject, "topic_id": topicId}),
       headers: await _authHeaders(),
     );
 
@@ -110,15 +156,18 @@ class StudentApiService {
   }
 
   /// GET /assignments?subject=...&type=...&topic_id=...
-  /// type: значения должны совпадать с AssignmentType на бэке (например: "practice", "test", ...)
   static Future<List<dynamic>> getAssignments({
     required String subject,
-    required String type,
+    String? type, // null => все типы
     required int topicId,
   }) async {
     final resp = await http.get(
-      _uri("/assignments",
-          {"subject": subject, "type": type, "topic_id": topicId}),
+      _uri("/student/assignments", {
+        "subject": subject,
+        // если type == null, параметр не отправляем
+        "type": (type == null || type == "all") ? null : type,
+        "topic_id": topicId,
+      }),
       headers: await _authHeaders(),
     );
 
@@ -133,7 +182,7 @@ class StudentApiService {
     required int assignmentId,
   }) async {
     final resp = await http.get(
-      _uri("/assignments/$assignmentId"),
+      _uri("/student/assignments/$assignmentId"),
       headers: await _authHeaders(),
     );
 
@@ -143,28 +192,28 @@ class StudentApiService {
     throw _httpError(resp);
   }
 
+  /// ✅ POST /assignments/{assignment_id}/submit
+  /// IMPORTANT: оставляем параметр `answers`, чтобы совпадало с UI-экранами
   static Future<Map<String, dynamic>> submitAssignment({
-  required int assignmentId,
-  required Map<String, dynamic> answers, // keys: q1, q2, ...
-}) async {
-  final resp = await http.post(
-    _uri("/assignments/$assignmentId/submit"),
-    headers: await _authHeaders(jsonBody: true),
-    body: json.encode({"answers": answers}),
-  );
+    required int assignmentId,
+    required Map<String, dynamic> answers, // keys: q1, q2, ...
+  }) async {
+    final resp = await http.post(
+      _uri("/student/assignments/$assignmentId/submit"),
+      headers: await _authHeaders(jsonBody: true),
+      body: json.encode({"answers": answers}),
+    );
 
-  if (resp.statusCode == 200) {
-    return Map<String, dynamic>.from(_decode(resp) as Map);
+    if (resp.statusCode == 200) {
+      return Map<String, dynamic>.from(_decode(resp) as Map);
+    }
+    throw _httpError(resp);
   }
-  throw _httpError(resp);
-}
-
 
   /// GET /grades?subject=...
-  static Future<Map<String, dynamic>> getGrades(
-      {required String subject}) async {
+  static Future<Map<String, dynamic>> getGrades({required String subject}) async {
     final resp = await http.get(
-      _uri("/grades", {"subject": subject}),
+      _uri("/student/grades", {"subject": subject}),
       headers: await _authHeaders(),
     );
 

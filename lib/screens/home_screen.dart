@@ -64,7 +64,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: appHeader(
-        'Информатика',
+        'Информатика', context: context,
         actions: [
           IconButton(
             icon: const Icon(Icons.notifications_none_rounded),
@@ -179,71 +179,76 @@ class _HomeScreenState extends State<HomeScreen> {
                 ],
               ),
               const SizedBox(height: 20),
-              Text(
-                'Темы информатики',
-                style: Theme.of(context).textTheme.headlineSmall,
-              ),
-              const SizedBox(height: 12),
-              Observer(
-                builder: (_) {
-                  final subjects = subjectsStore.subjects;
+              if (!_isTeacher) ...[
+                Text(
+                  'Темы информатики',
+                  style: Theme.of(context).textTheme.headlineSmall,
+                ),
+                const SizedBox(height: 12),
+                Observer(
+                  builder: (_) {
+                    final subjects = subjectsStore.subjects;
 
-                  if (subjects.isEmpty) {
-                    return Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.symmetric(
-                          vertical: 24, horizontal: 16),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: Row(
-                        children: const [
-                          Icon(Icons.hourglass_empty,
-                              color: AppTheme.primaryColor),
-                          SizedBox(width: 12),
-                          Expanded(
-                            child: Text(
-                              'Загружаем темы курса…',
-                              style: TextStyle(fontSize: 16),
+                    if (subjects.isEmpty) {
+                      return Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(
+                            vertical: 24, horizontal: 16),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Row(
+                          children: const [
+                            Icon(Icons.hourglass_empty,
+                                color: AppTheme.primaryColor),
+                            SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                'Загружаем темы курса…',
+                                style: TextStyle(fontSize: 16),
+                              ),
+                            )
+                          ],
+                        ),
+                      );
+                    }
+
+                    return Wrap(
+                      spacing: 10,
+                      runSpacing: 10,
+                      children: subjects
+                          .map(
+                            (subject) => Chip(
+                              label: Text(subject),
+                              avatar: const Icon(Icons.memory,
+                                  size: 18, color: AppTheme.primaryColor),
                             ),
                           )
-                        ],
-                      ),
+                          .toList(),
                     );
-                  }
-
-                  return Wrap(
-                    spacing: 10,
-                    runSpacing: 10,
-                    children: subjects
-                        .map(
-                          (subject) => Chip(
-                            label: Text(subject),
-                            avatar: const Icon(Icons.memory,
-                                size: 18, color: AppTheme.primaryColor),
-                          ),
-                        )
-                        .toList(),
-                  );
-                },
-              ),
+                  },
+                ),
+              ],
               const SizedBox(height: 20),
-              _FocusCard(
-                title: 'Цифровая грамотность',
-                description:
-                    'Разбирайтесь в безопасности, обработке данных и создавайте свои проекты. Ученикам — понятные шаги, преподавателям — прозрачная аналитика.',
-                actionLabel: 'Перейти к теории',
-                onTap: () => Navigator.pushNamed(context, '/theory'),
-              ),
-              const SizedBox(height: 12),
-              _FocusCard(
-                title: 'Подготовка к контрольной',
-                description:
-                    'Сборники задач, быстрые тренировки и возможность сформировать экзамен под тему урока.',
-                actionLabel: 'Открыть практику',
-                onTap: () => Navigator.pushNamed(context, '/exercises'),
-              ),
+              if (!_isTeacher) ...[
+                _FocusCard(
+                  title: 'Цифровая грамотность',
+                  description:
+                      'Разбирайтесь в безопасности, обработке данных и создавайте свои проекты. Ученикам — понятные шаги, преподавателям — прозрачная аналитика.',
+                  actionLabel: 'Перейти к теории',
+                  onTap: () =>
+                      Navigator.pushNamed(context, '/student/materials'),
+                ),
+                const SizedBox(height: 12),
+                _FocusCard(
+                  title: 'Подготовка к контрольной',
+                  description:
+                      'Сборники задач, быстрые тренировки и возможность сформировать экзамен под тему урока.',
+                  actionLabel: 'Открыть практику',
+                  onTap: () => Navigator.pushNamed(context, '/student/tests'),
+                ),
+              ],
             ],
           ),
         ),
@@ -258,12 +263,17 @@ class _HomeScreenState extends State<HomeScreen> {
             icon: Icon(Icons.person),
             label: 'Профиль',
           ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.info_outline_rounded),
+            label: 'О приложении',
+          ),
         ],
         currentIndex: 0,
         onTap: (index) {
-          if (index == 1) {
-            Navigator.pushNamed(context, '/profile');
-          }
+          if (index == 0) return;
+
+          final route = (index == 1) ? '/profile' : '/about';
+          Navigator.pushReplacementNamed(context, route);
         },
       ),
     );

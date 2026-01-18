@@ -13,10 +13,15 @@ class TeacherCreateAssignmentScreen extends StatefulWidget {
 
 class _TeacherCreateAssignmentScreenState
     extends State<TeacherCreateAssignmentScreen> {
-  bool _loading = true;
+  bool _topicsLoading = false;
+  bool _submitting = false;
   String? _error;
+  bool _classesLoading = false;
 
-  Map<String, dynamic>? _classGroup;
+  // Class can be passed via route arguments, but the screen can also
+  // be opened directly from Home (then we fetch classes and allow selection).
+  List<dynamic> _classes = [];
+  Map<String, dynamic>? _selectedClass;
   String _subject = "Информатика";
   String _type = "practice";
 
@@ -26,43 +31,106 @@ class _TeacherCreateAssignmentScreenState
   final _titleCtrl = TextEditingController();
   final _descCtrl = TextEditingController();
   final _maxAttemptsCtrl = TextEditingController(text: "3");
+  final _topicTitleCtrl = TextEditingController();
+
   bool _published = true;
 
   final List<_QuestionForm> _questions = [
     _QuestionForm(type: "select"),
   ];
 
+  String _classLabel(Map<String, dynamic> c) {
+    final name = c["name"]?.toString();
+    if (name != null && name.isNotEmpty) return name;
+
+    final grade = c["grade"]?.toString() ?? "";
+    final letter = c["letter"]?.toString() ?? "";
+    return "$grade$letter";
+  }
+
+  @override
+  void dispose() {
+    _titleCtrl.dispose();
+    _descCtrl.dispose();
+    _maxAttemptsCtrl.dispose();
+    _topicTitleCtrl.dispose();
+    super.dispose();
+  }
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     final args = ModalRoute.of(context)?.settings.arguments as Map?;
-    if (args != null && _classGroup == null) {
-      _classGroup = Map<String, dynamic>.from(args["class"] as Map);
+
+    // Already initialized
+    if (_selectedClass != null || _classes.isNotEmpty) return;
+
+    if (args != null && args["class"] != null) {
+      _selectedClass = Map<String, dynamic>.from(args["class"] as Map);
       _subject = (args["subject"] as String?) ?? _subject;
       _type = (args["type"] as String?) ?? _type;
-      _init();
+      _initTopics();
+    } else {
+      // Opened without args: load teacher classes and let user select
+      _initClasses();
     }
   }
 
-  Future<void> _init() async {
+  Future<void> _initClasses() async {
     setState(() {
-      _loading = true;
+      _classesLoading = true;
       _error = null;
     });
+
     try {
-      final classId = (_classGroup!["id"] as num).toInt();
-      final topics = await TeacherApiService.getTopics(
-          classId: classId, subject: _subject);
+      final classes = await TeacherApiService.getClasses();
+
+      final normalized = classes
+          .map((e) => Map<String, dynamic>.from(e as Map))
+          .toList(growable: false);
+
       setState(() {
-        _topics = topics;
-        _selectedTopic = topics.isNotEmpty
-            ? Map<String, dynamic>.from(topics.first as Map)
-            : null;
+        _classes = normalized;
+        _selectedClass = normalized.isNotEmpty ? normalized.first : null;
+      });
+
+      await _initTopics();
+    } catch (e) {
+      setState(() => _error = e.toString());
+    } finally {
+      setState(() => _classesLoading = false);
+    }
+  }
+
+  Future<void> _initTopics() async {
+    setState(() {
+      _topicsLoading = true;
+      _error = null;
+    });
+
+    try {
+      if (_selectedClass == null) {
+        setState(() => _topics = []);
+        return;
+      }
+
+      final classId = (_selectedClass!["id"] as num).toInt();
+      final topics = await TeacherApiService.getTopics(
+        classId: classId,
+        subject: _subject,
+      );
+      final normalized = topics
+          .map((e) => Map<String, dynamic>.from(e as Map))
+          .toList(growable: false);
+
+      setState(() {
+        _topics = normalized;
+        _selectedTopic = normalized.isNotEmpty ? normalized.first : null;
       });
     } catch (e) {
       setState(() => _error = e.toString());
     } finally {
-      setState(() => _loading = false);
+      setState(() => _topicsLoading = false);
     }
   }
 
@@ -76,9 +144,11 @@ class _TeacherCreateAssignmentScreenState
   }
 
   Future<void> _submit() async {
-    if (_classGroup == null) return;
-    if (_selectedTopic == null) {
-      setState(() => _error = "Выберите тему (topic)");
+    if (_selectedClass == null) return;
+
+    final topicTitle = _topicTitleCtrl.text.trim();
+    if (topicTitle.isEmpty) {
+      setState(() => _error = "Введите тему");
       return;
     }
 
@@ -94,7 +164,6 @@ class _TeacherCreateAssignmentScreenState
       return;
     }
 
-    // валидируем вопросы
     final questionsPayload = <Map<String, dynamic>>[];
     for (int i = 0; i < _questions.length; i++) {
       final q = _questions[i];
@@ -107,13 +176,20 @@ class _TeacherCreateAssignmentScreenState
     }
 
     setState(() {
-      _loading = true;
+      _submitting = true;
       _error = null;
     });
 
     try {
-      final classId = (_classGroup!["id"] as num).toInt();
-      final topicId = (_selectedTopic!["id"] as num).toInt();
+      final classId = (_selectedClass!["id"] as num).toInt();
+
+      final ensured = await TeacherApiService.ensureTopic(
+        classId: classId,
+        subject: _subject,
+        title: topicTitle,
+      );
+
+      final topicId = (ensured["id"] as num).toInt();
 
       final payload = {
         "class_id": classId,
@@ -138,7 +214,7 @@ class _TeacherCreateAssignmentScreenState
     } catch (e) {
       setState(() => _error = e.toString());
     } finally {
-      setState(() => _loading = false);
+      if (mounted) setState(() => _submitting = false);
     }
   }
 
@@ -184,7 +260,7 @@ class _TeacherCreateAssignmentScreenState
                           Text(
                               "Тип: ${_type == "practice" ? "Практика" : "Домашка"}",
                               style: theme.textTheme.bodyLarge
-                                  ?.copyWith(color: Colors.white70)),
+                                  ?.copyWith(color: const Color.fromARGB(255, 63, 63, 63))),
                         ],
                       ),
                     ),
@@ -201,27 +277,37 @@ class _TeacherCreateAssignmentScreenState
                     children: [
                       Text("Параметры", style: theme.textTheme.headlineSmall),
                       const SizedBox(height: 12),
-                      if (_loading)
-                        const _InlineLoading()
+                      if (_classesLoading)
+                        const _InlineLoading(text: "Загрузка классов…")
                       else
                         DropdownButtonFormField<Map<String, dynamic>>(
-                          value: _selectedTopic,
-                          items: _topics
-                              .map((t) =>
-                                  DropdownMenuItem<Map<String, dynamic>>(
-                                    value: Map<String, dynamic>.from(t as Map),
-                                    child: Text(
-                                        (t as Map)["title"]?.toString() ??
-                                            "Тема"),
-                                  ))
+                          value: _selectedClass,
+                          items: _classes
+                              .map(
+                                  (c) => DropdownMenuItem<Map<String, dynamic>>(
+                                        value: c,
+                                        child: Text(_classLabel(c)),
+                                      ))
                               .toList(),
-                          onChanged: (val) =>
-                              setState(() => _selectedTopic = val),
+                          onChanged: (val) async {
+                            setState(() => _selectedClass = val);
+                            await _initTopics();
+                          },
                           decoration: const InputDecoration(
-                            labelText: "Тема (topic)",
-                            prefixIcon: Icon(Icons.topic_rounded),
+                            labelText: "Класс",
+                            prefixIcon: Icon(Icons.school_rounded),
                           ),
                         ),
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: _topicTitleCtrl,
+                        decoration: const InputDecoration(
+                          labelText: "Тема",
+                          prefixIcon: Icon(Icons.topic_rounded),
+                          hintText: "Напр.: Алгоритмы / Циклы / Строки",
+                        ),
+                      ),
+
                       const SizedBox(height: 12),
                       TextField(
                         controller: _titleCtrl,
@@ -231,13 +317,16 @@ class _TeacherCreateAssignmentScreenState
                         ),
                       ),
                       const SizedBox(height: 12),
+                      // Материал — вручную (текст/ссылка).
+                      // Храним в поле description на бэке.
                       TextField(
                         controller: _descCtrl,
                         decoration: const InputDecoration(
-                          labelText: "Описание (опционально)",
-                          prefixIcon: Icon(Icons.notes_rounded),
+                          labelText: "Материал (текст или ссылка)",
+                          prefixIcon: Icon(Icons.menu_book_rounded),
+                          hintText: "Напр.: https://... или краткий конспект",
                         ),
-                        maxLines: 3,
+                        maxLines: 4,
                       ),
                       const SizedBox(height: 12),
                       Wrap(
@@ -315,9 +404,14 @@ class _TeacherCreateAssignmentScreenState
               ),
               const SizedBox(height: 16),
               ElevatedButton.icon(
-                onPressed: _loading ? null : _submit,
-                icon: const Icon(Icons.check_rounded),
-                label: const Text("Сохранить"),
+                onPressed: _submitting ? null : _submit,
+                icon: _submitting
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2))
+                    : const Icon(Icons.check_rounded),
+                label: Text(_submitting ? "Сохраняем…" : "Сохранить"),
               ),
             ],
           ),
@@ -328,18 +422,20 @@ class _TeacherCreateAssignmentScreenState
 }
 
 class _InlineLoading extends StatelessWidget {
-  const _InlineLoading();
+  final String text;
+  const _InlineLoading({required this.text});
 
   @override
   Widget build(BuildContext context) {
     return Row(
-      children: const [
-        SizedBox(
-            width: 18,
-            height: 18,
-            child: CircularProgressIndicator(strokeWidth: 2)),
-        SizedBox(width: 12),
-        Text("Загрузка тем…"),
+      children: [
+        const SizedBox(
+          width: 18,
+          height: 18,
+          child: CircularProgressIndicator(strokeWidth: 2),
+        ),
+        const SizedBox(width: 12),
+        Expanded(child: Text(text)),
       ],
     );
   }

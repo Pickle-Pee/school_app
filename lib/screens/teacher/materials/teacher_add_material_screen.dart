@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:school_test_app/services/teacher_api_service.dart';
 import 'package:school_test_app/theme/app_theme.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:school_test_app/widgets/app_navigator.dart';
 
 class TeacherAddMaterialScreen extends StatefulWidget {
   const TeacherAddMaterialScreen({Key? key}) : super(key: key);
@@ -114,7 +115,7 @@ class _TeacherAddMaterialScreenState extends State<TeacherAddMaterialScreen> {
     final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Добавить материал')),
+      appBar: appHeader("Добавить материал", context: context),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(16),

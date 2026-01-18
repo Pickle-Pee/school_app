@@ -25,12 +25,23 @@ class _StudentAssignmentsScreenState extends State<StudentAssignmentsScreen>
 
   List<dynamic> _assignments = [];
 
-  String get _type => _tabCtrl.index == 0 ? "practice" : "homework";
+  String? get _type {
+    switch (_tabCtrl.index) {
+      case 0:
+        return null; // все
+      case 1:
+        return "practice";
+      case 2:
+        return "homework";
+      default:
+        return "practice";
+    }
+  }
 
   @override
   void initState() {
     super.initState();
-    _tabCtrl = TabController(length: 2, vsync: this);
+    _tabCtrl = TabController(length: 3, vsync: this);
     _tabCtrl.addListener(() async {
       if (_tabCtrl.indexIsChanging) return;
       await _loadAssignments();
@@ -115,7 +126,16 @@ class _StudentAssignmentsScreenState extends State<StudentAssignmentsScreen>
     }
   }
 
-  String _typeTitle(String type) => type == "practice" ? "Практика" : "Домашка";
+  String _typeTitle(String? type) {
+    switch (type) {
+      case "practice":
+        return "Практика";
+      case "homework":
+        return "Домашка";
+      default:
+        return "Все задания";
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -126,7 +146,10 @@ class _StudentAssignmentsScreenState extends State<StudentAssignmentsScreen>
         title: const Text("Тесты"),
         bottom: TabBar(
           controller: _tabCtrl,
+          labelColor: Colors.white,
+          // TODO: Изменить цвет табов на белый
           tabs: const [
+            Tab(text: "Все"),
             Tab(text: "Практика"),
             Tab(text: "Домашка"),
           ],
@@ -175,7 +198,7 @@ class _StudentAssignmentsScreenState extends State<StudentAssignmentsScreen>
                 ),
               ),
               const SizedBox(height: 14),
-              if (_error != null) _ErrorCard(error: _error!, onRetry: _init),
+              // if (_error != null) _ErrorCard(error: _error!, onRetry: _init),
               Card(
                 child: Padding(
                   padding: const EdgeInsets.all(14),

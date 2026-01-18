@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:school_test_app/utils/session_manager.dart';
 import 'package:school_test_app/config.dart';
@@ -39,19 +38,44 @@ class AuthService {
   }
 
   /// Регистрация ученика
-  static Future<bool> registerStudent(String email, String password) async {
-    final url = "${Config.baseUrl}/register/student";
+  /// ожидаем ответ вида: {"access_token": "...", "token_type": "bearer"} (200/201)
+  static Future<bool> registerStudent({
+    required String fullName,
+    required String phone,
+    String? email,
+    required String password,
+    required int classGroupId,
+  }) async {
+    final url = "${Config.baseUrl}/auth/register/student";
+
     final body = {
-      "email": email,
+      "full_name": fullName.trim(),
+      "phone": phone.trim(),
+      "email": (email != null && email.trim().isNotEmpty) ? email.trim() : null,
       "password": password,
+      "class_group_id": classGroupId,
     };
+
     final response = await http.post(
       Uri.parse(url),
       headers: {"Content-Type": "application/json"},
       body: json.encode(body),
     );
 
-    return response.statusCode == 200 || response.statusCode == 201;
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      final data = decodeJson(response);
+      final accessToken = data["access_token"]?.toString();
+
+      if (accessToken == null || accessToken.isEmpty) {
+        throw Exception("Сервер не вернул access_token");
+      }
+
+      // ✅ важно: сохраняем как после логина, чтобы вся логика AuthService работала одинаково
+      await SessionManager.saveTokens(accessToken, "");
+      return true;
+    }
+
+    return false;
   }
 
   /// Регистрация учителя (требуется auth_code)
@@ -163,7 +187,10 @@ class AuthService {
   }
 
   static dynamic decodeJson(http.Response resp) {
-    final body = kIsWeb ? resp.body : utf8.decode(resp.bodyBytes);
+    // Всегда декодируем из bytes -> UTF-8.
+    // На Web resp.body может быть неверно интерпретирован, если сервер
+    // не прислал корректный charset, из-за чего кириллица превращается в «иероглифы».
+    final body = utf8.decode(resp.bodyBytes);
     return json.decode(body);
   }
 }

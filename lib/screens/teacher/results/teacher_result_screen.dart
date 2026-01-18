@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:school_test_app/services/teacher_api_service.dart';
 import 'package:school_test_app/theme/app_theme.dart';
+import 'package:school_test_app/widgets/status_cards.dart';
 
 class TeacherResultsScreen extends StatefulWidget {
   const TeacherResultsScreen({Key? key}) : super(key: key);
@@ -19,17 +20,42 @@ class _TeacherResultsScreenState extends State<TeacherResultsScreen> {
   String _subject = "Информатика";
   final _subjects = const ["Информатика", "Математика"];
 
-  String _type = "practice";
+  String? _type; // null => все
 
   List<dynamic> _topics = [];
   int? _selectedTopicId;
 
   List<dynamic> _items = []; // grades/by-topic items
 
+  bool _compactFilters = false; // если пришли с экрана класса/ученика
+
   @override
   void initState() {
     super.initState();
     _init();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final args = ModalRoute.of(context)?.settings.arguments;
+    if (args is Map) {
+      // Если пришли из списка учеников/класса — можем зафиксировать класс/предмет
+      final cls = args["class"];
+      final subj = args["subject"];
+      final compact = args["compact"];
+      if (cls is Map && _selectedClassId == null) {
+        final m = Map<String, dynamic>.from(cls);
+        final id = (m["id"] as num?)?.toInt();
+        if (id != null) {
+          _selectedClassId = id;
+          _compactFilters = (compact == true);
+        }
+      }
+      if (subj is String && subj.trim().isNotEmpty) {
+        _subject = subj;
+      }
+    }
   }
 
   String _classLabel(Map<String, dynamic> c) =>
@@ -45,7 +71,7 @@ class _TeacherResultsScreenState extends State<TeacherResultsScreen> {
       final classes = await TeacherApiService.getClasses();
       setState(() {
         _classes = classes;
-        _selectedClassId = classes.isNotEmpty
+        _selectedClassId ??= classes.isNotEmpty
             ? ((classes.first as Map)["id"] as num).toInt()
             : null;
       });
@@ -177,59 +203,62 @@ class _TeacherResultsScreenState extends State<TeacherResultsScreen> {
                     const Text("Фильтры",
                         style: TextStyle(fontWeight: FontWeight.w800)),
                     const SizedBox(height: 10),
-                    DropdownButtonFormField<int>(
-                      value: _selectedClassId,
-                      items: _classes.map((c) {
-                        final m = Map<String, dynamic>.from(c as Map);
-                        final id = (m["id"] as num).toInt();
-                        return DropdownMenuItem<int>(
-                          value: id,
-                          child: Text(_classLabel(m)),
-                        );
-                      }).toList(),
-                      onChanged: (id) async {
-                        setState(() => _selectedClassId = id);
-                        await _loadTopics();
-                        await _loadResults();
-                      },
-                      decoration: const InputDecoration(
-                        labelText: "Класс",
-                        prefixIcon: Icon(Icons.school_rounded),
+                    if (!_compactFilters)
+                      DropdownButtonFormField<int>(
+                        value: _selectedClassId,
+                        items: _classes.map((c) {
+                          final m = Map<String, dynamic>.from(c as Map);
+                          final id = (m["id"] as num).toInt();
+                          return DropdownMenuItem<int>(
+                            value: id,
+                            child: Text(_classLabel(m)),
+                          );
+                        }).toList(),
+                        onChanged: (id) async {
+                          setState(() => _selectedClassId = id);
+                          await _loadTopics();
+                          await _loadResults();
+                        },
+                        decoration: const InputDecoration(
+                          labelText: "Класс",
+                          prefixIcon: Icon(Icons.school_rounded),
+                        ),
                       ),
-                    ),
                     const SizedBox(height: 12),
                     Row(
                       children: [
-                        Expanded(
-                          child: DropdownButtonFormField<String>(
-                            value: _subject,
-                            items: _subjects
-                                .map((s) =>
-                                    DropdownMenuItem(value: s, child: Text(s)))
-                                .toList(),
-                            onChanged: (v) async {
-                              setState(() => _subject = v ?? _subject);
-                              await _loadTopics();
-                              await _loadResults();
-                            },
-                            decoration: const InputDecoration(
-                              labelText: "Предмет",
-                              prefixIcon: Icon(Icons.bookmark_rounded),
+                        if (!_compactFilters) ...[
+                          Expanded(
+                            child: DropdownButtonFormField<String>(
+                              value: _subject,
+                              items: _subjects
+                                  .map((s) => DropdownMenuItem(
+                                      value: s, child: Text(s)))
+                                  .toList(),
+                              onChanged: (v) async {
+                                setState(() => _subject = v ?? _subject);
+                                await _loadTopics();
+                                await _loadResults();
+                              },
+                              decoration: const InputDecoration(
+                                labelText: "Предмет",
+                                prefixIcon: Icon(Icons.bookmark_rounded),
+                              ),
                             ),
                           ),
-                        ),
-                        const SizedBox(width: 12),
+                          const SizedBox(width: 12),
+                        ],
                         Expanded(
-                          child: DropdownButtonFormField<String>(
+                          child: DropdownButtonFormField<String?>(
                             value: _type,
                             items: const [
-                              DropdownMenuItem(
-                                  value: "practice", child: Text("Практика")),
-                              DropdownMenuItem(
-                                  value: "homework", child: Text("Домашка")),
+                              DropdownMenuItem(value: null, child: Text("Все")),
+                              DropdownMenuItem(value: "practice", child: Text("Практика")),
+                              DropdownMenuItem(value: "homework", child: Text("Домашка")),
                             ],
+                            // style: const TextStyle(color: Colors.white),
                             onChanged: (v) async {
-                              setState(() => _type = v ?? _type);
+                              setState(() => _type = v);
                               await _loadResults();
                             },
                             decoration: const InputDecoration(
@@ -274,9 +303,9 @@ class _TeacherResultsScreenState extends State<TeacherResultsScreen> {
             if (_loading)
               const Center(child: CircularProgressIndicator())
             else if (_error != null)
-              _ErrorCard(error: _error!, onRetry: _init)
+              AppErrorCard(error: _error!, onRetry: _init)
             else if (_items.isEmpty)
-              const _InfoCard(
+              const AppInfoCard(
                   icon: Icons.inbox_rounded, text: "Результатов пока нет")
             else ...[
               Text("Список результатов", style: theme.textTheme.headlineSmall),
@@ -308,9 +337,9 @@ class _TeacherResultsScreenState extends State<TeacherResultsScreen> {
                           spacing: 10,
                           runSpacing: 10,
                           children: [
-                            Chip(label: Text("grade: $grade")),
-                            Chip(label: Text("score: $score")),
-                            Chip(label: Text("attempt: $attemptNo")),
+                            Chip(label: Text("Оценка: $grade")),
+                            Chip(label: Text("Баллы: $score")),
+                            Chip(label: Text("Попытка: $attemptNo")),
                           ],
                         ),
 
@@ -357,57 +386,4 @@ class _TeacherResultsScreenState extends State<TeacherResultsScreen> {
   }
 }
 
-class _InfoCard extends StatelessWidget {
-  final IconData icon;
-  final String text;
-  const _InfoCard({required this.icon, required this.text});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 14),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppTheme.primaryColor.withOpacity(0.10)),
-      ),
-      child: Row(
-        children: [
-          Icon(icon, color: AppTheme.primaryColor),
-          const SizedBox(width: 12),
-          Expanded(child: Text(text)),
-        ],
-      ),
-    );
-  }
-}
-
-class _ErrorCard extends StatelessWidget {
-  final String error;
-  final VoidCallback onRetry;
-  const _ErrorCard({required this.error, required this.onRetry});
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('Ошибка', style: TextStyle(fontWeight: FontWeight.w800)),
-            const SizedBox(height: 8),
-            Text(error),
-            const SizedBox(height: 12),
-            OutlinedButton.icon(
-              onPressed: onRetry,
-              icon: const Icon(Icons.refresh_rounded),
-              label: const Text('Повторить'),
-            )
-          ],
-        ),
-      ),
-    );
-  }
-}
+// унифицированные карточки статуса вынесены в widgets/status_cards.dart

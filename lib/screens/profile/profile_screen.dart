@@ -29,10 +29,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _load();
   }
 
-  dynamic decodeJson(http.Response resp) {
-    // На Web resp.body уже "как браузер прочитал".
-    // На Mobile/Android лучше брать bodyBytes и декодировать самим.
-    final body = kIsWeb ? resp.body : utf8.decode(resp.bodyBytes);
+  static dynamic decodeJson(http.Response resp) {
+    final body = utf8.decode(resp.bodyBytes);
     return json.decode(body);
   }
 
@@ -87,7 +85,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             : _studentConfig(context, _profile ?? {}));
 
     return Scaffold(
-      appBar: appHeader("Профиль"),
+      appBar: appHeader("Профиль", context: context),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(16),

@@ -69,11 +69,21 @@ class _TeacherGradesScreenState extends State<TeacherGradesScreen>
       return;
     }
 
+    final subject = _subjectController.text.trim();
+    if (subject.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content: Text('Укажите предмет (например: Информатика).')),
+      );
+      return;
+    }
+
     setState(() {
       _topicFuture = _service.fetchGradesByTopic(
         classId: widget.classGroup.id,
         topicId: topicId,
         type: _assignmentType,
+        subject: subject, // ✅ важно
         page: _page,
         pageSize: _pageSize,
       );
@@ -107,6 +117,7 @@ class _TeacherGradesScreenState extends State<TeacherGradesScreen>
             future: _topicFuture,
             topicIdController: _topicIdController,
             assignmentType: _assignmentType,
+            subjectController: _subjectController,
             page: _page,
             pageSize: _pageSize,
             onTypeChanged: (value) => setState(() => _assignmentType = value),
@@ -151,7 +162,7 @@ class _SummaryTab extends StatelessWidget {
           TextField(
             controller: subjectController,
             decoration: const InputDecoration(
-              labelText: 'Предмет (необязательно)',
+              labelText: 'Предмет',
               prefixIcon: Icon(Icons.menu_book_outlined),
             ),
           ),
@@ -222,10 +233,12 @@ class _ByTopicTab extends StatelessWidget {
     required this.onReset,
     required this.pageController,
     required this.pageSizeController,
+    required this.subjectController
   });
 
   final Future<List<Map<String, dynamic>>>? future;
   final TextEditingController topicIdController;
+  final TextEditingController subjectController;
   final String assignmentType;
   final int page;
   final int pageSize;
@@ -241,7 +254,8 @@ class _ByTopicTab extends StatelessWidget {
   }) onReset;
 
   static const types = ['practice', 'homework'];
-  String get safeType => types.contains(assignmentType) ? assignmentType : 'practice';
+  String get safeType =>
+      types.contains(assignmentType) ? assignmentType : 'practice';
 
   @override
   Widget build(BuildContext context) {

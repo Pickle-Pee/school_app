@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:school_test_app/theme/app_theme.dart';
 import 'package:school_test_app/services/teacher_api_service.dart';
+import 'package:school_test_app/widgets/app_navigator.dart';
 
 class TeacherMaterialDetailScreen extends StatelessWidget {
   const TeacherMaterialDetailScreen({Key? key}) : super(key: key);
@@ -18,7 +19,7 @@ class TeacherMaterialDetailScreen extends StatelessWidget {
     final fileUrl = item["file_url"]?.toString();
 
     return Scaffold(
-      appBar: AppBar(title: const Text("Материал")),
+      appBar: appHeader("Материал", context: context),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(16),

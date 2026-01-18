@@ -2,6 +2,7 @@ import 'dart:html' as html; // web-only сейчас ок
 import 'package:flutter/material.dart';
 import 'package:school_test_app/services/student_api_service.dart';
 import 'package:school_test_app/theme/app_theme.dart';
+import 'package:school_test_app/widgets/app_navigator.dart';
 
 class StudentMaterialDetailScreen extends StatelessWidget {
   const StudentMaterialDetailScreen({Key? key}) : super(key: key);
@@ -16,7 +17,7 @@ class StudentMaterialDetailScreen extends StatelessWidget {
     final fileUrl = item["file_url"]?.toString();
 
     return Scaffold(
-      appBar: AppBar(title: const Text("Материал")),
+      appBar: appHeader("Материал", context: context),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(16),

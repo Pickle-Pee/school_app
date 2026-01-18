@@ -31,10 +31,11 @@ class TeacherGradesService {
     return data.cast<Map<String, dynamic>>();
   }
 
-  Future<List<Map<String, dynamic>>> fetchGradesByTopic({
+    Future<List<Map<String, dynamic>>> fetchGradesByTopic({
     required int classId,
     required int topicId,
     required String type,
+    required String subject, // ✅ добавили
     int page = 1,
     int pageSize = 20,
   }) async {
@@ -44,13 +45,17 @@ class TeacherGradesService {
         'class_id': classId,
         'topic_id': topicId,
         'type': type,
+        'subject': subject, // ✅ отправляем
         'page': page,
         'page_size': pageSize,
       },
     );
+
+    // бэк возвращает объект {items, page, page_size, total}
     final data = _extractList(response.data);
     return data.cast<Map<String, dynamic>>();
   }
+
 
   Future<void> resetAttempts({
     required int studentId,

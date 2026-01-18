@@ -28,7 +28,7 @@ class _LoginScreenState extends State<LoginScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text("Авторизация успешна")),
         );
-        Navigator.pushNamed(context, '/home');
+        Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text("Неверные учетные данные")),
@@ -161,10 +161,10 @@ class _LoginScreenState extends State<LoginScreen> {
                         TextField(
                           controller: _authCodeController,
                           decoration: const InputDecoration(
-                          labelText: "Код учителя",
-                          prefixIcon: Icon(Icons.badge_outlined),
+                            labelText: "Код учителя",
+                            prefixIcon: Icon(Icons.badge_outlined),
+                          ),
                         ),
-                      ),
                       ],
                       const SizedBox(height: 16),
                       ElevatedButton.icon(
@@ -183,6 +183,14 @@ class _LoginScreenState extends State<LoginScreen> {
                     ],
                   ),
                 ),
+              ),
+              const SizedBox(height: 6),
+              TextButton.icon(
+                onPressed: _isTeacher
+                    ? null
+                    : () => Navigator.pushNamed(context, '/student/register'),
+                icon: const Icon(Icons.person_add_alt_1_rounded),
+                label: const Text('Регистрация (для учеников)'),
               ),
             ],
           ),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:school_test_app/services/student_api_service.dart';
 import 'package:school_test_app/theme/app_theme.dart';
+import 'package:school_test_app/widgets/app_navigator.dart';
 
 class StudentAssignmentDetailScreen extends StatefulWidget {
   const StudentAssignmentDetailScreen({Key? key}) : super(key: key);
@@ -44,7 +45,7 @@ class _StudentAssignmentDetailScreenState extends State<StudentAssignmentDetailS
     final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(title: const Text("Задание")),
+      appBar: appHeader("Задание", context: context ),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(16),

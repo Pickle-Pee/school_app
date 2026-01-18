@@ -116,24 +116,26 @@ class TeacherApiService {
   static Future<Map<String, dynamic>> getGradesByTopic({
     required int classId,
     required int topicId,
-    required String type, // "practice" | "homework"
     required String subject,
+    String? type,
     int page = 1,
-    int pageSize = 20,
+    int pageSize = 50,
   }) async {
     final resp = await http.get(
       _uri("/grades/by-topic", {
         "class_id": classId,
         "topic_id": topicId,
-        "type": type,
         "subject": subject,
+        "type": type,
         "page": page,
         "page_size": pageSize,
       }),
       headers: await _authHeaders(),
     );
-    if (resp.statusCode == 200)
+
+    if (resp.statusCode == 200) {
       return Map<String, dynamic>.from(_decode(resp) as Map);
+    }
     throw _httpError(resp);
   }
 
@@ -269,11 +271,14 @@ class TeacherApiService {
   static Future<List<dynamic>> listAssignments({
     required int classId,
     required String subject,
-    required String type, // "practice" | "homework"
+    String? type, // null => все типы
   }) async {
     final resp = await http.get(
-      _uri("/assignments",
-          {"class_id": classId, "subject": subject, "type": type}),
+      _uri("/assignments", {
+        "class_id": classId,
+        "subject": subject,
+        if (type != null && type != "all") "type": type,
+      }),
       headers: await _authHeaders(),
     );
     if (resp.statusCode == 200)
@@ -354,5 +359,26 @@ class TeacherApiService {
     if (fileUrl.startsWith("http://") || fileUrl.startsWith("https://"))
       return fileUrl;
     return "${_base()}$fileUrl";
+  }
+
+  static Future<Map<String, dynamic>> ensureTopic({
+    required int classId,
+    required String subject,
+    required String title,
+  }) async {
+    final resp = await http.post(
+      _uri("/topics/ensure"),
+      headers: await _authHeaders(jsonBody: true),
+      body: json.encode({
+        "class_id": classId,
+        "subject": subject,
+        "title": title,
+      }),
+    );
+
+    if (resp.statusCode == 200 || resp.statusCode == 201) {
+      return Map<String, dynamic>.from(_decode(resp) as Map);
+    }
+    throw _httpError(resp);
   }
 }

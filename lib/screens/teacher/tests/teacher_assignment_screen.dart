@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:school_test_app/theme/app_theme.dart';
 import 'package:school_test_app/services/teacher_api_service.dart';
+import 'package:school_test_app/widgets/status_cards.dart';
 
 class TeacherAssignmentsScreen extends StatefulWidget {
   const TeacherAssignmentsScreen({Key? key}) : super(key: key);
@@ -18,7 +19,7 @@ class _TeacherAssignmentsScreenState extends State<TeacherAssignmentsScreen> {
   Map<String, dynamic>? _selectedClass;
 
   String _subject = "Информатика";
-  String _type = "practice"; // practice/homework
+  String? _type; // null => все, иначе practice/homework
 
   List<dynamic> _assignments = [];
 
@@ -95,7 +96,8 @@ class _TeacherAssignmentsScreenState extends State<TeacherAssignmentsScreen> {
                           arguments: {
                             "class": _selectedClass,
                             "subject": _subject,
-                            "type": _type,
+                            // если в фильтре выбрано "Все", при создании берём "practice" по умолчанию
+                            "type": _type ?? "practice",
                           },
                         );
                         if (res == true) await _loadAssignments();
@@ -147,16 +149,15 @@ class _TeacherAssignmentsScreenState extends State<TeacherAssignmentsScreen> {
                         ),
                         SizedBox(
                           width: 320,
-                          child: DropdownButtonFormField<String>(
+                          child: DropdownButtonFormField<String?>(
                             value: _type,
                             items: const [
-                              DropdownMenuItem(
-                                  value: "practice", child: Text("Практика")),
-                              DropdownMenuItem(
-                                  value: "homework", child: Text("Домашка")),
+                              DropdownMenuItem(value: null, child: Text("Все")),
+                              DropdownMenuItem(value: "practice", child: Text("Практика")),
+                              DropdownMenuItem(value: "homework", child: Text("Домашка")),
                             ],
                             onChanged: (v) async {
-                              setState(() => _type = v ?? "practice");
+                              setState(() => _type = v);
                               await _loadAssignments();
                             },
                             decoration: const InputDecoration(
@@ -179,14 +180,11 @@ class _TeacherAssignmentsScreenState extends State<TeacherAssignmentsScreen> {
             ),
             const SizedBox(height: 14),
             if (_loading)
-              const _InfoCard(
-                  icon: Icons.hourglass_empty, text: 'Загружаем задания…')
+              const AppLoadingCard(text: 'Загружаем задания…')
             else if (_error != null)
-              _ErrorCard(error: _error!, onRetry: _init)
+              AppErrorCard(error: _error!, onRetry: _init)
             else if (_assignments.isEmpty)
-              const _InfoCard(
-                  icon: Icons.inbox_rounded,
-                  text: 'Заданий пока нет. Создайте первое.')
+              const AppEmptyCard(text: 'Заданий пока нет. Создайте первое.')
             else ...[
               Text('Список', style: Theme.of(context).textTheme.headlineSmall),
               const SizedBox(height: 10),
@@ -276,61 +274,6 @@ class _Header extends StatelessWidget {
           const SizedBox(width: 10),
           action,
         ],
-      ),
-    );
-  }
-}
-
-class _InfoCard extends StatelessWidget {
-  final IconData icon;
-  final String text;
-  const _InfoCard({required this.icon, required this.text});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 14),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppTheme.primaryColor.withOpacity(0.10)),
-      ),
-      child: Row(
-        children: [
-          Icon(icon, color: AppTheme.primaryColor),
-          const SizedBox(width: 12),
-          Expanded(child: Text(text)),
-        ],
-      ),
-    );
-  }
-}
-
-class _ErrorCard extends StatelessWidget {
-  final String error;
-  final VoidCallback onRetry;
-  const _ErrorCard({required this.error, required this.onRetry});
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('Ошибка', style: TextStyle(fontWeight: FontWeight.w800)),
-            const SizedBox(height: 8),
-            Text(error),
-            const SizedBox(height: 12),
-            OutlinedButton.icon(
-              onPressed: onRetry,
-              icon: const Icon(Icons.refresh_rounded),
-              label: const Text('Повторить'),
-            )
-          ],
-        ),
       ),
     );
   }

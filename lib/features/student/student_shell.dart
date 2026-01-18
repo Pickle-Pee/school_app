@@ -23,7 +23,7 @@ class _StudentShellState extends State<StudentShell> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppTheme.background,
-      appBar: appHeader(_titles[_currentIndex]),
+      appBar: appHeader(_titles[_currentIndex], context: context),
       body: IndexedStack(
         index: _currentIndex,
         children: const [

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:school_test_app/theme/app_theme.dart';
 import 'package:school_test_app/services/teacher_api_service.dart';
+import 'package:school_test_app/widgets/app_navigator.dart';
+import 'package:school_test_app/widgets/status_cards.dart';
 
 class TeacherMaterialsScreen extends StatefulWidget {
   const TeacherMaterialsScreen({Key? key}) : super(key: key);
@@ -88,7 +90,9 @@ class _TeacherMaterialsScreenState extends State<TeacherMaterialsScreen> {
     final theme = Theme.of(context);
 
     return SafeArea(
+      
       child: SingleChildScrollView(
+        
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -199,13 +203,13 @@ class _TeacherMaterialsScreenState extends State<TeacherMaterialsScreen> {
             const SizedBox(height: 14),
 
             if (_loading)
-              const _LoadingCard(text: 'Загружаем материалы…')
+              const AppLoadingCard(text: 'Загружаем материалы…')
             else if (_error != null)
-              _ErrorCard(error: _error!, onRetry: _init)
+              AppErrorCard(error: _error!, onRetry: _init)
             else if (_theory.isEmpty)
-              const _EmptyCard(
-                  text:
-                      'Материалы не найдены. Добавьте первый файл или конспект.')
+              const AppEmptyCard(
+                text: 'Материалы не найдены. Добавьте первый файл или конспект.',
+              )
             else ...[
               Text('Список материалов', style: theme.textTheme.headlineSmall),
               const SizedBox(height: 10),
@@ -213,43 +217,12 @@ class _TeacherMaterialsScreenState extends State<TeacherMaterialsScreen> {
                 final item = Map<String, dynamic>.from(t as Map);
                 return _TheoryTile(
                   item: item,
-                  onTap: () async {
-                    final fileUrl = item["file_url"]?.toString();
-                    final kind = item["kind"]?.toString();
-
-                    // Пока нет экрана деталки — показываем простое модальное окно
-                    showModalBottomSheet(
-                      context: context,
-                      shape: const RoundedRectangleBorder(
-                        borderRadius:
-                            BorderRadius.vertical(top: Radius.circular(20)),
-                      ),
-                      builder: (_) => Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              kind == "file" ? "Файл" : "Конспект",
-                              style: theme.textTheme.headlineSmall,
-                            ),
-                            const SizedBox(height: 10),
-                            if (kind == "text")
-                              Text(item["text"]?.toString() ?? "—")
-                            else
-                              Text("Ссылка на файл: ${fileUrl ?? "—"}"),
-                            const SizedBox(height: 12),
-                            OutlinedButton.icon(
-                              onPressed: () => Navigator.pop(context),
-                              icon: const Icon(Icons.close_rounded),
-                              label: const Text("Закрыть"),
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
-                  },
+                  // ✅ Реальная деталка материала (уже реализована)
+                  onTap: () => Navigator.pushNamed(
+                    context,
+                    '/teacher/materials/detail',
+                    arguments: {"item": item},
+                  ),
                 );
               }).toList(),
             ],
@@ -355,91 +328,4 @@ class _TheoryTile extends StatelessWidget {
   }
 }
 
-class _LoadingCard extends StatelessWidget {
-  final String text;
-  const _LoadingCard({required this.text});
 
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 14),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppTheme.primaryColor.withOpacity(0.10)),
-      ),
-      child: Row(
-        children: const [
-          SizedBox(
-              width: 18,
-              height: 18,
-              child: CircularProgressIndicator(strokeWidth: 2)),
-          SizedBox(width: 12),
-          Expanded(child: Text('Загружаем материалы…')),
-        ],
-      ),
-    );
-  }
-}
-
-class _EmptyCard extends StatelessWidget {
-  final String text;
-  const _EmptyCard({required this.text});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 14),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppTheme.primaryColor.withOpacity(0.10)),
-      ),
-      child: Row(
-        children: [
-          const Icon(Icons.inbox_rounded, color: AppTheme.primaryColor),
-          const SizedBox(width: 12),
-          Expanded(child: Text(text)),
-        ],
-      ),
-    );
-  }
-}
-
-class _ErrorCard extends StatelessWidget {
-  final String error;
-  final VoidCallback onRetry;
-
-  const _ErrorCard({required this.error, required this.onRetry});
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Row(
-              children: [
-                Icon(Icons.error_outline_rounded, color: Colors.redAccent),
-                SizedBox(width: 10),
-                Text('Ошибка', style: TextStyle(fontWeight: FontWeight.w800)),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Text(error),
-            const SizedBox(height: 12),
-            OutlinedButton.icon(
-              onPressed: onRetry,
-              icon: const Icon(Icons.refresh_rounded),
-              label: const Text('Повторить'),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
