@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:typed_data';
 import 'package:http/http.dart' as http;
 
 import 'package:school_test_app/config.dart';
@@ -31,7 +32,8 @@ class StudentApiService {
         .replace(queryParameters: qp.isEmpty ? null : qp);
   }
 
-  static Future<Map<String, String>> _authHeaders({bool jsonBody = false}) async {
+  static Future<Map<String, String>> _authHeaders(
+      {bool jsonBody = false}) async {
     final token = await SessionManager.getAccessToken();
     if (token == null || token.isEmpty) {
       throw Exception("Нет access_token. Сначала выполните логин.");
@@ -84,7 +86,8 @@ class StudentApiService {
       body: json.encode({
         "full_name": fullName,
         "phone": phone,
-        "email": (email != null && email.trim().isNotEmpty) ? email.trim() : null,
+        "email":
+            (email != null && email.trim().isNotEmpty) ? email.trim() : null,
         "password": password,
         "class_group_id": classGroupId,
       }),
@@ -211,7 +214,8 @@ class StudentApiService {
   }
 
   /// GET /grades?subject=...
-  static Future<Map<String, dynamic>> getGrades({required String subject}) async {
+  static Future<Map<String, dynamic>> getGrades(
+      {required String subject}) async {
     final resp = await http.get(
       _uri("/student/grades", {"subject": subject}),
       headers: await _authHeaders(),
@@ -228,5 +232,39 @@ class StudentApiService {
       return fileUrl;
     }
     return "${_base()}$fileUrl";
+  }
+
+  static String? _filenameFromContentDisposition(String? cd) {
+    if (cd == null) return null;
+
+    final utf8Match = RegExp(r"filename\*\=UTF-8''([^;]+)").firstMatch(cd);
+    if (utf8Match != null) return Uri.decodeFull(utf8Match.group(1)!);
+
+    final match = RegExp(r'filename\=\"?([^\";]+)\"?').firstMatch(cd);
+    if (match != null) return match.group(1);
+
+    return null;
+  }
+
+  static Future<({Uint8List bytes, String filename, String contentType})>
+      downloadTheoryFileWeb(int theoryId) async {
+    final resp = await http.get(
+      Uri.parse("${_base()}/files/$theoryId"),
+      headers: await _authHeaders(),
+    );
+
+    if (resp.statusCode != 200) throw _httpError(resp);
+
+    final cd = resp.headers["content-disposition"];
+    final filename = _filenameFromContentDisposition(cd) ?? "theory_$theoryId";
+
+    final contentType =
+        resp.headers["content-type"] ?? "application/octet-stream";
+
+    return (
+      bytes: resp.bodyBytes,
+      filename: filename,
+      contentType: contentType
+    );
   }
 }

@@ -1,9 +1,12 @@
 import 'dart:convert';
+import 'dart:typed_data';
 import 'package:file_picker/file_picker.dart';
 
 import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
 import 'package:school_test_app/config.dart';
 import 'package:school_test_app/utils/session_manager.dart';
+import 'package:school_test_app/utils/web_file.dart';
 
 /// Teacher API (с prefix="/teacher"):
 /// GET    /teacher/profile
@@ -208,7 +211,10 @@ class TeacherApiService {
       throw Exception("Нет access_token. Сначала выполните логин.");
     }
 
-    final req = http.MultipartRequest("POST", _uri("/theory"));
+    // ❗ Формируем URL без queryParameters
+    final uri = Uri.parse("${_base()}${_path("/theory")}");
+
+    final req = http.MultipartRequest("POST", uri);
     req.headers["Authorization"] = "Bearer $token";
 
     req.fields["class_id"] = classId.toString();
@@ -216,22 +222,19 @@ class TeacherApiService {
     req.fields["topic_id"] = topicId.toString();
     req.fields["kind"] = "file";
 
-    // Web: bytes доступны только если pickFiles(withData: true)
     if (file.bytes != null) {
       req.files.add(
         http.MultipartFile.fromBytes(
           "file",
           file.bytes!,
           filename: file.name,
+          contentType: MediaType('application', 'octet-stream'),
         ),
       );
     } else if (file.path != null) {
-      // Android/iOS обычно можно грузить из path
       req.files.add(await http.MultipartFile.fromPath("file", file.path!));
     } else {
-      throw Exception(
-        "Файл не содержит bytes и path. Для Web используйте FilePicker(... withData: true).",
-      );
+      throw Exception("Не удалось прочитать файл");
     }
 
     final streamed = await req.send();
@@ -380,5 +383,53 @@ class TeacherApiService {
       return Map<String, dynamic>.from(_decode(resp) as Map);
     }
     throw _httpError(resp);
+  }
+
+  static String? _filenameFromContentDisposition(String? cd) {
+    if (cd == null) return null;
+
+    final utf8Match = RegExp(r"filename\*\=UTF-8''([^;]+)").firstMatch(cd);
+    if (utf8Match != null) return Uri.decodeFull(utf8Match.group(1)!);
+
+    final match = RegExp(r'filename\=\"?([^\";]+)\"?').firstMatch(cd);
+    if (match != null) return match.group(1);
+
+    return null;
+  }
+
+  static Future<({Uint8List bytes, String filename, String contentType})>
+      downloadTheoryFileWeb(int theoryId) async {
+    final resp = await http.get(
+      Uri.parse("${_base()}/files/$theoryId"),
+      headers: await _authHeaders(),
+    );
+
+    if (resp.statusCode != 200) throw _httpError(resp);
+
+    final cd = resp.headers["content-disposition"];
+    final filename = _filenameFromContentDisposition(cd) ?? "theory_$theoryId";
+
+    final contentType =
+        resp.headers["content-type"] ?? "application/octet-stream";
+
+    return (
+      bytes: resp.bodyBytes,
+      filename: filename,
+      contentType: contentType
+    );
+  }
+
+  Future<void> openTheoryFileOnWeb(int theoryId) async {
+    final res = await TeacherApiService.downloadTheoryFileWeb(theoryId);
+
+    final isPdf = res.contentType.toLowerCase().contains("pdf") ||
+        res.filename.toLowerCase().endsWith(".pdf");
+
+    openOrDownloadBytesWeb(
+      bytes: res.bytes,
+      filename: res.filename,
+      contentType: res.contentType,
+      openInNewTab: isPdf,
+    );
   }
 }

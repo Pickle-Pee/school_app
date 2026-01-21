@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:school_test_app/services/teacher_api_service.dart';
 import 'package:school_test_app/theme/app_theme.dart';
@@ -20,8 +19,8 @@ class _TeacherAddMaterialScreenState extends State<TeacherAddMaterialScreen> {
   Map<String, dynamic>? _classGroup;
   String? _subject;
 
-  List<dynamic> _topics = [];
-  Map<String, dynamic>? _selectedTopic;
+  List<Map<String, dynamic>> _topics = [];
+  int? _selectedTopicId;
 
   bool _isFile = false;
   final TextEditingController _textController = TextEditingController();
@@ -31,10 +30,22 @@ class _TeacherAddMaterialScreenState extends State<TeacherAddMaterialScreen> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final args = ModalRoute.of(context)?.settings.arguments as Map?;
-    if (args != null && _classGroup == null) {
+
+    final args = ModalRoute.of(context)?.settings.arguments;
+    if (args is! Map) {
+      setState(() => _error = "Не переданы аргументы экрана");
+      return;
+    }
+
+    if (_classGroup == null) {
       _classGroup = Map<String, dynamic>.from(args["class"] as Map);
       _subject = args["subject"] as String?;
+
+      if (_subject == null || _subject!.isEmpty) {
+        setState(() => _error = "Не передан предмет");
+        return;
+      }
+
       _init();
     }
   }
@@ -47,15 +58,18 @@ class _TeacherAddMaterialScreenState extends State<TeacherAddMaterialScreen> {
 
     try {
       final classId = (_classGroup!["id"] as num).toInt();
-      final topics = await TeacherApiService.getTopics(
+      final topicsRaw = await TeacherApiService.getTopics(
         classId: classId,
         subject: _subject!,
       );
+
+      final topics =
+          topicsRaw.map((e) => Map<String, dynamic>.from(e as Map)).toList();
+
       setState(() {
         _topics = topics;
-        _selectedTopic = topics.isNotEmpty
-            ? Map<String, dynamic>.from(topics.first as Map)
-            : null;
+        _selectedTopicId =
+            topics.isNotEmpty ? (topics.first["id"] as num).toInt() : null;
       });
     } catch (e) {
       setState(() => _error = e.toString());
@@ -65,8 +79,10 @@ class _TeacherAddMaterialScreenState extends State<TeacherAddMaterialScreen> {
   }
 
   Future<void> _submit() async {
-    if (_classGroup == null || _subject == null || _selectedTopic == null)
+    if (_classGroup == null || _subject == null || _selectedTopicId == null) {
+      setState(() => _error = "Не выбраны все параметры");
       return;
+    }
 
     setState(() {
       _loading = true;
@@ -75,7 +91,7 @@ class _TeacherAddMaterialScreenState extends State<TeacherAddMaterialScreen> {
 
     try {
       final classId = (_classGroup!["id"] as num).toInt();
-      final topicId = (_selectedTopic!["id"] as num).toInt();
+      final topicId = _selectedTopicId!;
 
       if (_isFile) {
         if (_pickedFile == null) {
@@ -102,9 +118,9 @@ class _TeacherAddMaterialScreenState extends State<TeacherAddMaterialScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Материал добавлен")),
       );
-      Navigator.pop(context, true); // чтобы список обновился
-    } catch (e) {
-      setState(() => _error = e.toString());
+      Navigator.pop(context, true);
+    } catch (e, st) {
+      setState(() => _error = "$e\n$st");
     } finally {
       setState(() => _loading = false);
     }
@@ -166,19 +182,18 @@ class _TeacherAddMaterialScreenState extends State<TeacherAddMaterialScreen> {
                       children: [
                         Text('Параметры', style: theme.textTheme.headlineSmall),
                         const SizedBox(height: 12),
-                        DropdownButtonFormField<Map<String, dynamic>>(
-                          value: _selectedTopic,
-                          items: _topics
-                              .map((t) =>
-                                  DropdownMenuItem<Map<String, dynamic>>(
-                                    value: Map<String, dynamic>.from(t as Map),
-                                    child: Text(
-                                        (t as Map)["title"]?.toString() ??
-                                            "Тема"),
-                                  ))
-                              .toList(),
-                          onChanged: (val) =>
-                              setState(() => _selectedTopic = val),
+                        DropdownButtonFormField<int>(
+                          value: _selectedTopicId,
+                          items: _topics.map((t) {
+                            final id = (t["id"] as num).toInt();
+                            final title = t["title"]?.toString() ?? "Тема";
+                            return DropdownMenuItem<int>(
+                              value: id,
+                              child: Text(title),
+                            );
+                          }).toList(),
+                          onChanged: (id) =>
+                              setState(() => _selectedTopicId = id),
                           decoration: const InputDecoration(
                             labelText: 'Тема',
                             prefixIcon: Icon(Icons.topic_rounded),
@@ -199,7 +214,7 @@ class _TeacherAddMaterialScreenState extends State<TeacherAddMaterialScreen> {
                           ],
                         ),
                         const SizedBox(height: 10),
-                        if (!_isFile) ...[
+                        if (!_isFile)
                           TextField(
                             controller: _textController,
                             maxLines: 8,
@@ -208,9 +223,8 @@ class _TeacherAddMaterialScreenState extends State<TeacherAddMaterialScreen> {
                               alignLabelWithHint: true,
                               prefixIcon: Icon(Icons.notes_rounded),
                             ),
-                          ),
-                        ] else ...[
-                          // TODO: заменить на реальный file picker
+                          )
+                        else
                           Container(
                             width: double.infinity,
                             padding: const EdgeInsets.all(14),
@@ -218,8 +232,8 @@ class _TeacherAddMaterialScreenState extends State<TeacherAddMaterialScreen> {
                               color: AppTheme.accentColor.withOpacity(0.10),
                               borderRadius: BorderRadius.circular(16),
                               border: Border.all(
-                                  color:
-                                      AppTheme.primaryColor.withOpacity(0.10)),
+                                color: AppTheme.primaryColor.withOpacity(0.10),
+                              ),
                             ),
                             child: Row(
                               children: [
@@ -237,7 +251,7 @@ class _TeacherAddMaterialScreenState extends State<TeacherAddMaterialScreen> {
                                   onPressed: () async {
                                     final res =
                                         await FilePicker.platform.pickFiles(
-                                      withData: true, // важно для web
+                                      withData: true,
                                     );
                                     if (res == null || res.files.isEmpty)
                                       return;
@@ -249,7 +263,6 @@ class _TeacherAddMaterialScreenState extends State<TeacherAddMaterialScreen> {
                               ],
                             ),
                           ),
-                        ],
                         const SizedBox(height: 16),
                         ElevatedButton.icon(
                           onPressed: _loading ? null : _submit,
@@ -283,9 +296,10 @@ class _InlineLoading extends StatelessWidget {
       child: Row(
         children: const [
           SizedBox(
-              width: 18,
-              height: 18,
-              child: CircularProgressIndicator(strokeWidth: 2)),
+            width: 18,
+            height: 18,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          ),
           SizedBox(width: 12),
           Expanded(child: Text('Загрузка…')),
         ],
